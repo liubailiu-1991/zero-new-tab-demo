@@ -40,7 +40,7 @@
     { id: "b1", title: "ZERO 新标签页组件与响应式标注", domain: "figma.com", site: "figma", folder: "design", tags: ["视觉", "组件"], icon: "site-01.png", savedAt: 12 },
     { id: "b2", title: "ZERO 新标签页需求与决策记录", domain: "github.com", site: "github", folder: "zero", tags: ["产品", "开发"], icon: "site-02.png", savedAt: 11 },
     { id: "b3", title: "Chrome 侧栏产品交互参考", domain: "zhihu.com", site: "zhihu", folder: "product", tags: ["交互", "竞品"], icon: "site-05.png", savedAt: 10 },
-    { id: "b4", title: "高密度侧栏列表的排版方法", domain: "behance.net", site: "behance", folder: "design", tags: ["视觉", "排版"], icon: "site-08.png", savedAt: 9 },
+    { id: "b4", title: "Behance · 高密度侧栏列表排版", domain: "behance.net", site: "behance", folder: "design", tags: ["视觉", "排版"], icon: "site-08.png", savedAt: 9 },
     { id: "b5", title: "标签筛选与内容找回策略", domain: "notion.so", site: "notion", folder: "product", tags: ["产品", "标签"], icon: "site-09.png", savedAt: 8 },
     { id: "b6", title: "浏览器扩展弹窗转侧栏实现", domain: "github.com", site: "github", folder: "projects", tags: ["开发", "插件"], icon: "site-02.png", savedAt: 7 },
     { id: "b7", title: "收藏夹与站点聚合的区别", domain: "zhihu.com", site: "zhihu", folder: "product", tags: ["产品", "信息架构"], icon: "site-05.png", savedAt: 6 },
@@ -57,10 +57,10 @@
       { id: "t2", title: "ZERO 新标签页需求与决策", domain: "github.com", site: "github", icon: "site-02.png", saved: true, group: "ZERO 项目" },
       { id: "t3", title: "Chrome 侧栏开发接口说明", domain: "developer.chrome.com", site: "chrome", icon: "", saved: false, group: "ZERO 项目" },
       { id: "t4", title: "侧栏交互方案讨论", domain: "chatgpt.com", site: "chatgpt", icon: "site-16.png", saved: false, group: "ZERO 项目" },
-      { id: "t5", title: "浏览器侧栏视觉参考", domain: "behance.net", site: "behance", icon: "site-08.png", saved: false, group: "设计灵感" },
-      { id: "t6", title: "侧栏导航与信息层级", domain: "dribbble.com", site: "dribbble", icon: "site-03.png", saved: false, group: "设计灵感" },
-      { id: "t7", title: "工作台布局灵感合集", domain: "pinterest.com", site: "pinterest", icon: "site-11.png", saved: true, group: "设计灵感" },
-      { id: "t8", title: "标签筛选交互方案", domain: "zhihu.com", site: "zhihu", icon: "site-05.png", saved: true, group: "内容学习" },
+      { id: "t5", title: "Behance · 浏览器侧栏视觉参考", domain: "behance.net", site: "behance", icon: "site-08.png", saved: false, group: "设计灵感" },
+      { id: "t6", title: "Dribbble · 侧栏导航与信息层级", domain: "dribbble.com", site: "dribbble", icon: "site-03.png", saved: false, group: "设计灵感" },
+      { id: "t7", title: "Pinterest · 工作台布局灵感合集", domain: "pinterest.com", site: "pinterest", icon: "site-11.png", saved: true, group: "设计灵感" },
+      { id: "t8", title: "知乎 · 标签筛选交互方案", domain: "zhihu.com", site: "zhihu", icon: "site-05.png", saved: true, group: "内容学习" },
       { id: "t9", title: "信息架构梳理方法", domain: "medium.com", site: "medium", icon: "site-12.png", saved: false, group: "内容学习" },
       { id: "t10", title: "侧栏体验评审记录", domain: "youtube.com", site: "youtube", icon: "site-06.png", saved: false, group: "内容学习" },
       { id: "t11", title: "新标签页视觉灵感", domain: "xiaohongshu.com", site: "xiaohongshu", icon: "site-07.png", saved: false },
@@ -194,7 +194,7 @@
       const count = site.id === "all" ? tabs.length : tabs.filter(tab => tab.site === site.id).length;
       const selected = state.activeOpenSite === site.id;
       const icon = site.icon ? `<img src="${asset(site.icon)}" alt="">` : `<i data-lucide="${site.id === "all" ? "layout-grid" : "globe-2"}"></i>`;
-      return `<button class="site-filter ${selected ? "is-active" : ""}" type="button" data-open-site="${site.id}" aria-label="${escapeHTML(site.name)}，${count} 个打开的标签页" aria-pressed="${selected}" ${selected ? "" : `data-tooltip="${escapeHTML(site.name)} · ${count} 个"`}>${icon}</button>`;
+      return `<button class="site-filter ${selected ? "is-active" : ""}" type="button" data-open-site="${site.id}" aria-label="${escapeHTML(site.name)}，${count} 个打开的标签页" aria-pressed="${selected}" data-tooltip="${escapeHTML(site.name)} · ${count} 个" data-tooltip-placement="left">${icon}</button>`;
     }).join("");
     document.querySelectorAll("[data-open-site]").forEach(button => button.addEventListener("click", () => {
       state.activeOpenSite = button.dataset.openSite;
@@ -223,7 +223,7 @@
     const savedLabel = tab.saved ? "已收藏，打开收藏信息" : tab.restricted ? "此页面不能收藏" : "收藏此标签页";
     const tabLabel = `切换到 ${tab.title}，${tab.domain}`;
     return `<div class="browser-tab-row ${tab.id === state.activeTab ? "is-active" : ""}" data-tab-id="${tab.id}">
-      <button class="tab-main-action" type="button" data-activate-tab="${tab.id}" aria-label="${escapeHTML(tabLabel)}" data-tooltip="${escapeHTML(tab.title)}"><span class="favicon-slot">${faviconMarkup(tab)}</span><span class="tab-copy"><strong>${tab.pinned ? '<span class="pin-mark"><i data-lucide="pin"></i></span> ' : ""}${escapeHTML(tab.title)}</strong></span></button>
+      <button class="tab-main-action" type="button" data-activate-tab="${tab.id}" aria-label="${escapeHTML(tabLabel)}"><span class="favicon-slot">${faviconMarkup(tab)}</span><span class="tab-copy"><strong>${tab.pinned ? '<span class="pin-mark"><i data-lucide="pin"></i></span> ' : ""}${escapeHTML(tab.title)}</strong></span></button>
       <div class="tab-row-actions"><button class="row-icon-button group-tab-action" type="button" data-group-tab="${tab.id}" aria-label="整理“${escapeHTML(tab.title)}”的标签组" aria-haspopup="menu" aria-expanded="false" data-tooltip="整理标签组"><i data-lucide="group"></i></button><button class="row-icon-button save-tab-action ${tab.saved ? "is-saved" : ""}" type="button" data-save-tab="${tab.id}" aria-label="${savedLabel}" ${tab.restricted ? "disabled" : ""} data-tooltip="${savedLabel}"><i data-lucide="bookmark"></i></button><button class="row-icon-button close-tab-action" type="button" data-close-tab="${tab.id}" aria-label="关闭 ${escapeHTML(tab.title)}" data-tooltip="关闭标签页"><i data-lucide="x"></i></button></div>
     </div>`;
   }
@@ -234,7 +234,7 @@
       const groupTabs = tabs.filter(tab => tab.group === name);
       const key = tabGroupKey(group.id, name);
       const collapsed = forceExpanded ? false : state.collapsedTabGroups.has(key);
-      return `<section class="native-tab-group ${collapsed ? "is-collapsed" : ""}" style="--group-color:${tabGroupColor(name)}" data-tab-group-key="${escapeHTML(key)}"><button class="tab-group-heading" type="button" data-toggle-tab-group="${escapeHTML(key)}" aria-expanded="${!collapsed}"><i data-lucide="chevron-down"></i><span class="tab-group-dot" aria-hidden="true"></span><strong>${escapeHTML(name)}</strong><small>${groupTabs.length}</small></button><div class="tab-group-rows">${groupTabs.map(renderOpenTabRow).join("")}</div></section>`;
+      return `<section class="native-tab-group ${collapsed ? "is-collapsed" : ""}" style="--group-color:${tabGroupColor(name)}" data-tab-group-key="${escapeHTML(key)}"><button class="tab-group-heading" type="button" data-toggle-tab-group="${escapeHTML(key)}" aria-expanded="${!collapsed}"><i data-lucide="chevron-down"></i><strong>${escapeHTML(name)}</strong><small>${groupTabs.length}</small></button><div class="tab-group-rows">${groupTabs.map(renderOpenTabRow).join("")}</div></section>`;
     }).join("");
     const ungrouped = tabs.filter(tab => !tab.group);
     const ungroupedMarkup = ungrouped.length ? `<div class="ungrouped-tabs">${names.length ? '<div class="ungrouped-label">未分组</div>' : ""}${ungrouped.map(renderOpenTabRow).join("")}</div>` : "";
@@ -538,7 +538,7 @@
     byId("site-rail").innerHTML = available.map(site => {
       const count = site.id === "all" ? scopeItems.length : scopeItems.filter(item => item.site === site.id).length;
       const selected = state.activeSite === site.id;
-      return `<button class="site-filter ${selected ? "is-active" : ""}" type="button" data-saved-site="${site.id}" aria-label="${escapeHTML(site.name)}，${count} 条收藏" aria-pressed="${selected}" ${selected ? "" : `data-tooltip="${escapeHTML(site.name)} · ${count} 条"`}>${site.icon ? `<img src="${asset(site.icon)}" alt="">` : '<i data-lucide="layout-grid"></i>'}</button>`;
+      return `<button class="site-filter ${selected ? "is-active" : ""}" type="button" data-saved-site="${site.id}" aria-label="${escapeHTML(site.name)}，${count} 条收藏" aria-pressed="${selected}" data-tooltip="${escapeHTML(site.name)} · ${count} 条" data-tooltip-placement="left">${site.icon ? `<img src="${asset(site.icon)}" alt="">` : '<i data-lucide="layout-grid"></i>'}</button>`;
     }).join("");
     document.querySelectorAll("[data-saved-site]").forEach(button => button.addEventListener("click", () => {
       state.activeSite = button.dataset.savedSite;
@@ -697,7 +697,7 @@
     if (saved) {
       meta.textContent = `${state.currentPage.domain} · 已收藏到${folder}`;
       actions.className = "current-actions is-saved";
-      actions.innerHTML = `<span class="saved-status"><i data-lucide="circle-check"></i>已收藏</span><button class="row-icon-button current-site-button" id="view-current-site" type="button" aria-label="查看当前站点" data-tooltip="查看当前站点"><i data-lucide="locate-fixed"></i></button><button class="current-edit-button" id="edit-current" type="button">编辑</button>`;
+      actions.innerHTML = `<span class="saved-status"><i data-lucide="circle-check"></i>已收藏</span><button class="row-icon-button current-site-button" id="view-current-site" type="button" aria-label="查看当前站点" data-tooltip="查看当前站点"><i data-lucide="locate-fixed"></i></button><button class="row-icon-button current-edit-button" id="edit-current" type="button" aria-label="编辑收藏信息" data-tooltip="编辑收藏"><i data-lucide="pencil"></i></button>`;
       byId("view-current-site").addEventListener("click", () => {
         state.activeFolder = "all";
         state.activeSite = sites.some(site => site.id === state.currentPage.site) ? state.currentPage.site : "all";
@@ -734,8 +734,13 @@
         tooltip.hidden = false;
         const rect = target.getBoundingClientRect();
         const tip = tooltip.getBoundingClientRect();
-        const left = Math.max(8, Math.min(rect.left + rect.width / 2 - tip.width / 2, innerWidth - tip.width - 8));
-        const top = rect.top - tip.height - 7 >= 8 ? rect.top - tip.height - 7 : Math.min(innerHeight - tip.height - 8, rect.bottom + 7);
+        const placement = target.dataset.tooltipPlacement || "auto";
+        const left = placement === "left"
+          ? Math.max(8, rect.left - tip.width - 8)
+          : Math.max(8, Math.min(rect.left + rect.width / 2 - tip.width / 2, innerWidth - tip.width - 8));
+        const top = placement === "left"
+          ? Math.max(8, Math.min(rect.top + rect.height / 2 - tip.height / 2, innerHeight - tip.height - 8))
+          : rect.top - tip.height - 7 >= 8 ? rect.top - tip.height - 7 : Math.min(innerHeight - tip.height - 8, rect.bottom + 7);
         tooltip.style.left = `${left}px`;
         tooltip.style.top = `${top}px`;
       };

@@ -1230,10 +1230,11 @@
       .expanded-grid { grid-template-rows: repeat(3, 82px); }
     }
   </style>
-  <link rel="stylesheet" href="high-fi-demo-v2.css?v=20260806-folder-overflow-2">
+  <link rel="stylesheet" href="high-fi-demo-v2.css?v=20260807-side-panel-push-1">
 </head>
 <body data-ui-state="default">
   <main class="scene" id="scene" aria-label="ZERO 新标签页真实组件原型">
+    <div class="page-viewport" id="page-viewport">
     <button class="wallpaper" id="wallpaper" type="button" data-module="wallpaper" aria-label="壁纸背景"></button>
     <div class="wallpaper-shade"></div>
 
@@ -1437,6 +1438,8 @@
     <div class="context-menu" id="context-menu" data-module="context-menu" role="menu" aria-label="操作菜单" aria-hidden="true"></div>
 
     <section class="settings-popover" id="settings-popover" data-module="tool-zone" role="dialog" aria-label="Dock 设置" aria-hidden="true"></section>
+
+    </div>
 
     <aside class="side-panel-preview" id="side-panel-preview" aria-label="收藏侧栏预览" hidden>
       <iframe id="side-panel-frame" title="ZERO 收藏侧栏" src="side-panel-demo.html?tab=open&current=saved"></iframe>
@@ -1854,6 +1857,6 @@
     refreshIcons();
     if (initialModule) requestAnimationFrame(() => applyDiscussionState(initialModule, initialElement));
   </script>
-  <script src="high-fi-demo-v2.js?v=20260806-side-panel-1"></script>
+  <script src="high-fi-demo-v2.js?v=20260807-side-panel-push-1"></script>
 </body>
 </html>

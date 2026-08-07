@@ -1,4 +1,5 @@
 :root {
+  --side-panel-w: min(420px, max(360px, 32vw));
   --dock-site-label-h: 0px;
   --folder-chip-h: 28px;
   --folder-chip-icon: 16px;
@@ -27,6 +28,19 @@
 
 .scene { min-width: 0; }
 
+.page-viewport {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  overflow: visible;
+  transition: right 180ms ease;
+}
+
+.scene.has-side-panel .page-viewport { right: var(--side-panel-w); }
+
+/* Chrome's tab strip stays window-wide; the webpage below it owns the reduced viewport. */
+.scene.has-side-panel .page-viewport > .browser-chrome { right: calc(-1 * var(--side-panel-w)); }
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -52,10 +66,13 @@ body[data-scenario="empty"] .scene:not(.has-bookmarks) #plugin-entry {
 }
 
 .search-shell {
+  width: min(640px, calc(100% - 48px));
   grid-template-columns: 32px minmax(0, 1fr) repeat(4, 32px);
   gap: 8px;
   padding: 0 8px;
 }
+
+.search-menu { width: min(640px, calc(100% - 48px)); }
 
 .search-engine-button {
   width: 32px;
@@ -1157,7 +1174,16 @@ body.is-popup-host .scene {
   background: #fff;
 }
 
-body.is-popup-host .scene > :not(.extension-panel) { display: none !important; }
+body.is-popup-host .scene > :not(.page-viewport) { display: none !important; }
+body.is-popup-host .page-viewport {
+  position: relative;
+  inset: auto;
+  width: 400px;
+  height: auto;
+  overflow: visible;
+  transition: none;
+}
+body.is-popup-host .page-viewport > :not(.extension-panel) { display: none !important; }
 body.is-popup-host .extension-panel {
   position: relative;
   top: 0;
@@ -1214,12 +1240,12 @@ body.text-scale-200 .folder-empty-state { font-size: 18px; }
   top: var(--chrome-h);
   right: 0;
   bottom: 0;
-  width: min(420px, calc(100vw - 48px));
-  min-width: 360px;
+  width: var(--side-panel-w);
+  min-width: 0;
   overflow: hidden;
   background: #f7f8fa;
   border-left: 1px solid rgba(0, 0, 0, .15);
-  box-shadow: -10px 0 30px rgba(0, 0, 0, .14);
+  box-shadow: none;
 }
 
 .side-panel-preview iframe { display: block; width: 100%; height: 100%; border: 0; background: #f7f8fa; }
@@ -1229,10 +1255,6 @@ body.is-popup-host .popup-footer .command { min-width: 0; padding-inline: 10px; 
 body.is-popup-host .popup-side-panel-button { min-width: 112px; }
 body.text-scale-200 .popup-footer { flex-wrap: wrap; height: auto; }
 body.text-scale-200 .popup-side-panel-button { min-width: 160px; }
-
-@media (max-width: 620px) {
-  .side-panel-preview { width: calc(100vw - 16px); min-width: 360px; }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .panel,

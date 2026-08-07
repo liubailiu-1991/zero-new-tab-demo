@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ZERO 收藏侧栏原型</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="side-panel-demo.css">
+</head>
+<body data-ui-state="default">
+  <main class="side-panel" data-dl-composition="browser-side-panel" aria-label="ZERO 收藏侧栏">
+    <header class="panel-header" data-dl-module="side-panel-header">
+      <div class="panel-brand"><span class="brand-mark" aria-hidden="true"><i data-lucide="sparkles"></i></span><strong>收藏侧栏</strong></div>
+      <div class="header-actions">
+        <button class="icon-button" id="panel-settings" type="button" aria-label="打开侧栏设置" aria-haspopup="dialog" aria-expanded="false" aria-controls="side-settings-panel" data-tooltip="侧栏设置"><i data-lucide="settings"></i></button>
+        <button class="icon-button" id="close-panel" type="button" aria-label="关闭侧栏" data-tooltip="关闭侧栏"><i data-lucide="x"></i></button>
+      </div>
+    </header>
+
+    <nav class="mode-tabs" role="tablist" aria-label="侧栏内容">
+      <button class="mode-tab is-active" id="tab-open" type="button" role="tab" aria-selected="true" aria-controls="view-open" data-mode="open"><span>当前打开</span><small id="open-count">12</small></button>
+      <button class="mode-tab" id="tab-saved" type="button" role="tab" aria-selected="false" aria-controls="view-saved" data-mode="saved"><span>已收藏</span><small id="saved-count">286</small></button>
+    </nav>
+
+    <section class="current-page" id="current-page" data-dl-module="current-page-status" aria-label="当前网页收藏状态">
+      <img class="current-favicon" src="assets/figma/site-01.png" alt="Figma">
+      <div class="current-copy">
+        <strong>Duck Newtab Desktop</strong>
+        <span id="current-page-meta">figma.com · 当前网页未收藏</span>
+      </div>
+      <div class="current-actions" id="current-actions">
+        <button class="save-current-button" id="save-current" type="button"><i data-lucide="bookmark-plus"></i><span>收藏当前页</span></button>
+        <button class="save-options-button" id="save-options" type="button" aria-label="保存前选择收藏夹和标签" aria-haspopup="dialog" aria-expanded="false" data-tooltip="选择收藏位置"><i data-lucide="chevron-down"></i></button>
+      </div>
+    </section>
+
+    <section class="panel-view is-active" id="view-open" role="tabpanel" aria-labelledby="tab-open" data-view="open">
+      <div class="view-toolbar open-toolbar">
+        <label class="search-control"><i data-lucide="search"></i><input id="open-search" type="search" placeholder="搜索打开的标签页" aria-label="搜索打开的标签页"><button class="clear-search" type="button" data-clear="open" aria-label="清除标签页搜索" hidden><i data-lucide="x"></i></button></label>
+        <div class="open-toolbar-actions" aria-label="窗口与标签组显示控制">
+          <button class="icon-button compact-toolbar-button" id="toggle-all-open" type="button" aria-label="全部展开" data-tooltip="全部展开"><i data-lucide="list-tree"></i></button>
+        </div>
+      </div>
+      <div class="open-layout">
+        <div class="open-scroll" id="window-list" data-collection="browser-windows" aria-live="polite"></div>
+        <aside class="site-rail open-site-rail" id="open-site-rail" aria-label="按站点筛选打开的标签页"></aside>
+      </div>
+    </section>
+
+    <section class="panel-view" id="view-saved" role="tabpanel" aria-labelledby="tab-saved" data-view="saved" hidden>
+      <div class="saved-toolbar" data-dl-module="saved-retrieval-toolbar">
+        <div class="saved-search-row">
+          <label class="search-control saved-search"><i data-lucide="search"></i><input id="saved-search" type="search" placeholder="搜索已收藏内容" aria-label="搜索已收藏内容"><button class="clear-search" type="button" data-clear="saved" aria-label="清除收藏搜索" hidden><i data-lucide="x"></i></button></label>
+        </div>
+        <div class="tag-shortcuts" aria-label="最近使用的标签">
+          <button class="tag-filter-trigger" id="tag-filter-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="tag-filter-panel"><i data-lucide="tags"></i><span>标签</span></button>
+          <div class="recent-tags" id="recent-tags"></div>
+          <span class="result-count" id="result-count">12 条</span>
+        </div>
+      </div>
+
+      <div class="saved-layout">
+        <div class="saved-workspace" id="saved-workspace">
+          <section class="folder-pane" aria-label="收藏夹结构">
+            <div class="folder-pane-toolbar">
+              <div class="pane-title"><i data-lucide="folders"></i><strong>收藏夹</strong><small id="folder-tree-count">0</small></div>
+              <button class="icon-button pane-toolbar-button" id="toggle-folder-tree" type="button" aria-label="全部收起收藏夹" data-tooltip="全部收起"><i data-lucide="list-collapse"></i></button>
+            </div>
+            <div class="folder-tree" id="folder-tree" role="tree" aria-label="收藏夹树"></div>
+          </section>
+
+          <div class="saved-splitter" id="saved-splitter" role="separator" aria-label="调整收藏夹与网站列表高度" aria-orientation="horizontal" aria-valuemin="112" aria-valuemax="520" aria-valuenow="250" tabindex="0"><span></span></div>
+
+          <section class="bookmark-region" aria-label="当前收藏夹的网站">
+            <div class="bookmark-pane-toolbar" id="bookmark-pane-toolbar">
+              <div class="pane-title selected-folder-title" id="selected-folder-title"></div>
+              <button class="icon-button pane-toolbar-button sort-trigger" id="sort-trigger" type="button" aria-label="排序：最近保存" aria-haspopup="menu" aria-expanded="false" data-tooltip="排序"><i data-lucide="arrow-down-wide-narrow"></i></button>
+            </div>
+            <div class="active-filter-summary" id="active-filter-summary" hidden></div>
+            <div class="bookmark-list" id="bookmark-list" data-collection="bookmarks" aria-live="polite"></div>
+          </section>
+        </div>
+
+        <aside class="site-rail" id="site-rail" aria-label="按站点筛选"></aside>
+      </div>
+    </section>
+
+    <div class="overlay-backdrop" id="overlay-backdrop" hidden></div>
+
+    <section class="tag-filter-panel" id="tag-filter-panel" role="dialog" aria-label="标签筛选" hidden>
+      <header><div><strong>标签筛选</strong><span>继续缩小当前范围</span></div><button class="icon-button" id="close-tag-panel" type="button" aria-label="关闭标签筛选"><i data-lucide="x"></i></button></header>
+      <label class="search-control tag-search"><i data-lucide="search"></i><input id="tag-search" type="search" placeholder="搜索标签" aria-label="搜索标签"></label>
+      <div class="tag-filter-list" id="tag-filter-list"></div>
+    </section>
+
+    <div class="sort-menu" id="sort-menu" role="menu" aria-label="选择排序方式" hidden>
+      <button type="button" role="menuitemradio" aria-checked="true" data-sort="time"><i data-lucide="clock-3"></i><span>最近保存</span><i data-lucide="check"></i></button>
+      <button type="button" role="menuitemradio" aria-checked="false" tabindex="-1" data-sort="name"><i data-lucide="arrow-down-a-z"></i><span>名称</span><i data-lucide="check"></i></button>
+    </div>
+
+    <div class="tab-group-menu" id="tab-group-menu" role="menu" aria-label="整理标签页分组" hidden></div>
+
+    <section class="save-options-panel" id="save-options-panel" role="dialog" aria-label="选择收藏位置" hidden>
+      <header><strong>收藏当前页</strong><button class="icon-button" id="close-save-options" type="button" aria-label="关闭收藏设置"><i data-lucide="x"></i></button></header>
+      <label class="field-label"><span>收藏夹</span><select id="save-folder"><option>未分类</option><option selected>设计资料</option><option>产品研究</option><option>稍后阅读</option></select></label>
+      <fieldset><legend>标签</legend><div class="save-tag-options"><label><input type="checkbox" value="视觉" checked><span>视觉</span></label><label><input type="checkbox" value="组件"><span>组件</span></label><label><input type="checkbox" value="产品"><span>产品</span></label></div></fieldset>
+      <button class="primary-command" id="confirm-save-options" type="button">收藏并整理</button>
+    </section>
+
+    <section class="side-settings-panel" id="side-settings-panel" role="dialog" aria-modal="true" aria-label="侧栏设置" hidden>
+      <header><strong>侧栏设置</strong><button class="icon-button" id="close-side-settings" type="button" aria-label="关闭侧栏设置"><i data-lucide="x"></i></button></header>
+      <div class="settings-body">
+        <fieldset>
+          <legend>点击扩展图标时</legend>
+          <label class="setting-option"><input type="radio" name="default-entry" value="popup" checked><span><strong>快速收藏</strong><small>打开 Popup，并立即收藏当前网页</small></span><i data-lucide="check"></i></label>
+          <label class="setting-option"><input type="radio" name="default-entry" value="side-panel"><span><strong>打开侧栏</strong><small>直接打开或聚焦浏览器右侧栏</small></span><i data-lucide="check"></i></label>
+        </fieldset>
+        <p class="settings-note">从 Popup 点击一次“打开侧栏”不会自动修改这里。</p>
+      </div>
+    </section>
+
+    <div class="toast" id="side-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div class="tooltip" id="side-tooltip" role="tooltip" hidden></div>
+  </main>
+
+  <template id="tab-row-template">
+    <div class="browser-tab-row" data-collection-item="browser-tab">
+      <button class="tab-main-action" type="button" data-action="activate-tab"><span class="favicon-slot"></span><span class="tab-copy"><strong data-field="title"></strong></span></button>
+      <div class="tab-row-actions"><button class="row-icon-button save-tab-action" type="button" data-action="save-tab"></button><button class="row-icon-button close-tab-action" type="button" data-action="close-tab" aria-label="关闭标签页"><i data-lucide="x"></i></button></div>
+    </div>
+  </template>
+
+  <template id="bookmark-row-template">
+    <article class="bookmark-row" data-collection-item="bookmark">
+      <button class="bookmark-main" type="button" data-action="open-bookmark"><span class="favicon-slot"></span><span class="bookmark-copy"><strong data-field="title"></strong><small data-field="domain"></small><span class="bookmark-tags" data-field="tags"></span></span></button>
+      <button class="row-icon-button bookmark-more" type="button" data-action="bookmark-menu" aria-label="更多操作"><i data-lucide="ellipsis"></i></button>
+    </article>
+  </template>
+
+  <script src="assets/lucide.min.js"></script>
+  <script src="side-panel-demo.js"></script>
+</body>
+</html>

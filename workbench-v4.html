@@ -1,0 +1,1634 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ZERO 新标签页 - 需求探索工作台 V4</title>
+  <link rel="icon" href="assets/figma/tabbar/ai-assistant.svg">
+  <style>
+    :root {
+      --topbar-h: 44px;
+      --left-w: 252px;
+      --right-w: 344px;
+      --bg: #d9dde2;
+      --panel: #f7f8fa;
+      --panel-strong: #ffffff;
+      --canvas: #24272c;
+      --canvas-grid: #2d3137;
+      --text: #242a33;
+      --muted: #737b87;
+      --line: #d6dae0;
+      --line-strong: #bcc2ca;
+      --accent: #2867d8;
+      --accent-soft: #e9f0ff;
+      --done: #228052;
+      --wait: #b66a15;
+      --danger: #b53931;
+      --shadow: 0 18px 46px rgba(17, 24, 34, 0.24);
+      --radius: 7px;
+      --type-ui: 14px;
+      --type-ui-line: 20px;
+      --type-aux: 12px;
+      --type-aux-line: 18px;
+      --control-h: 34px;
+      --icon-control: 34px;
+      --focus-ring: 0 0 0 3px rgba(40, 103, 216, 0.24);
+      --disabled: #a8afb8;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; }
+    body {
+      margin: 0;
+      min-width: 0;
+      overflow: hidden;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { color: inherit; }
+
+    .app {
+      height: 100%;
+      display: grid;
+      grid-template-rows: var(--topbar-h) minmax(0, 1fr);
+    }
+
+    .topbar {
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 9px 0 13px;
+      border-bottom: 1px solid #30343a;
+      background: #202328;
+      color: #e7e9ed;
+    }
+
+    .brand {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .brand-mark {
+      width: 21px;
+      height: 21px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      background: #eef1f5;
+      color: #1a1d22;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .brand-version {
+      color: #969da8;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .actions, .toolbar-group, .module-main, .section-heading, .status-line {
+      display: flex;
+      align-items: center;
+    }
+
+    .actions, .toolbar-group { gap: 4px; }
+
+    .icon-btn, .text-btn {
+      height: 29px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 8px;
+      background: transparent;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .icon-btn { width: 29px; padding: 0; }
+    .icon-btn svg, .text-btn svg { width: 15px; height: 15px; stroke-width: 1.8; }
+    .icon-btn:hover, .text-btn:hover { background: rgba(119, 127, 139, 0.13); }
+    .topbar .icon-btn { color: #c6cbd3; }
+    .topbar .icon-btn:hover { border-color: #454a52; background: #30343a; color: #fff; }
+    .topbar .icon-btn[aria-pressed="true"] { border-color: #466391; background: #304567; color: #fff; }
+    .topbar .text-btn { color: #dfe3e9; text-decoration: none; }
+    .topbar .text-btn:hover { border-color: #454a52; background: #30343a; color: #fff; }
+
+    .workspace {
+      min-height: 0;
+      display: grid;
+      position: relative;
+      grid-template-columns: minmax(218px, var(--left-w)) 8px minmax(0, 1fr) 8px minmax(286px, var(--right-w));
+    }
+
+    .pane { min-width: 0; min-height: 0; overflow: hidden; background: var(--panel); }
+    .left-pane { display: grid; grid-template-rows: auto auto minmax(0, 1fr); border-right: 1px solid var(--line); }
+    .right-pane { display: grid; grid-template-rows: auto minmax(0, 1fr); border-left: 1px solid var(--line); }
+    .center-pane { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: var(--canvas); }
+
+    .resizer { position: relative; z-index: 10; cursor: col-resize; background: #aeb4bd; }
+    .resizer::after { content: ""; position: absolute; inset: 0 1px; }
+    .resizer:hover::after, .resizer.is-dragging::after { background: var(--accent); }
+
+    body.left-hidden .workspace { grid-template-columns: 0 0 minmax(0, 1fr) 8px minmax(286px, var(--right-w)); }
+    body.right-hidden .workspace { grid-template-columns: minmax(218px, var(--left-w)) 8px minmax(0, 1fr) 0 0; }
+    body.left-hidden.right-hidden .workspace { grid-template-columns: 0 0 minmax(0, 1fr) 0 0; }
+    body.left-hidden .left-pane, body.left-hidden .left-resizer,
+    body.right-hidden .right-pane, body.right-hidden .right-resizer { visibility: hidden; pointer-events: none; }
+    body.left-hidden .left-resizer, body.right-hidden .right-resizer { display: none; }
+
+    .pane-head {
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 9px 8px 13px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-strong);
+    }
+
+    .pane-title { min-width: 0; }
+    .pane-title strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+    .pane-title span { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }
+
+    .search-area { padding: 9px; border-bottom: 1px solid var(--line); }
+    .search-wrap { position: relative; }
+    .search-wrap svg { position: absolute; left: 9px; top: 50%; width: 14px; height: 14px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    .search-input {
+      width: 100%;
+      height: 31px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0 9px 0 29px;
+      outline: none;
+      background: #fff;
+      color: var(--text);
+      font-size: 11px;
+    }
+    .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(40, 103, 216, 0.11); }
+
+    .feature-scroll, .inspector-scroll { min-height: 0; overflow: auto; }
+    .feature-scroll { padding: 8px 7px 24px; }
+    .feature-tree, .feature-tree ul { margin: 0; padding: 0; list-style: none; }
+    .feature-group + .feature-group { margin-top: 5px; }
+
+    .group-button, .module-button {
+      width: 100%;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      display: grid;
+      align-items: center;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .group-button {
+      min-height: 29px;
+      grid-template-columns: 17px minmax(0, 1fr) auto;
+      gap: 4px;
+      padding: 3px 6px;
+      color: #555e6b;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .module-button {
+      min-height: 32px;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 6px;
+      margin-top: 1px;
+      padding: 4px 7px 4px 25px;
+      color: #3f4753;
+      font-size: 11px;
+    }
+
+    .group-button:hover, .module-button:hover { background: #eceff3; }
+    .module-button.is-active { border-color: rgba(40, 103, 216, 0.22); background: var(--accent-soft); color: #1f4f9e; }
+    .chevron { width: 14px; height: 14px; display: grid; place-items: center; color: #737b87; }
+    .chevron svg { width: 12px; height: 12px; transition: transform 120ms ease; }
+    .group-button[aria-expanded="false"] .chevron svg { transform: rotate(-90deg); }
+    .feature-children[hidden] { display: none; }
+    .module-main { min-width: 0; gap: 7px; }
+    .module-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; background: var(--wait); }
+    .status-dot.done { background: var(--done); }
+    .question-count { min-width: 17px; height: 17px; border-radius: 9px; display: grid; place-items: center; padding: 0 4px; background: #e3e7ec; color: #737b87; font-size: 9px; }
+    .module-button.is-active .question-count { background: #d8e5ff; color: #2457ad; }
+    .empty-tree { padding: 24px 10px; color: var(--muted); text-align: center; font-size: 11px; }
+
+    .canvas-toolbar {
+      min-height: 54px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto auto;
+      grid-template-areas: "title state viewport zoom";
+      align-items: center;
+      gap: 12px;
+      padding: 6px 9px 6px 13px;
+      border-bottom: 1px solid #b7bdc5;
+      background: #f4f5f7;
+    }
+
+    .canvas-title { min-width: 0; grid-area: title; }
+    .breadcrumb { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 9px; }
+    .canvas-title-line { min-width: 0; display: flex; align-items: center; gap: 7px; margin-top: 2px; }
+    .canvas-title-line h1 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 1.3; }
+    .selection-chip { flex: 0 0 auto; border-radius: 10px; padding: 2px 7px; background: #e8edf4; color: #606977; font-size: 9px; }
+    .selection-chip.element { background: #e9f0ff; color: #2457ad; }
+
+    .viewport-select {
+      height: 29px;
+      border: 1px solid #cfd4db;
+      border-radius: 6px;
+      padding: 0 27px 0 8px;
+      outline: none;
+      background: #fff;
+      color: #3e4753;
+      font-size: 10px;
+      cursor: pointer;
+    }
+    .viewport-select:focus { border-color: var(--accent); }
+    .popup-state-select { min-width: 156px; grid-area: state; }
+    #viewport-select { grid-area: viewport; }
+    .canvas-toolbar > .toolbar-group { grid-area: zoom; }
+    .zoom-value { min-width: 45px; }
+
+    @media (max-width: 1200px) {
+      .canvas-toolbar {
+        min-height: 86px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "title zoom" "state viewport";
+        gap: 6px 10px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .canvas-toolbar {
+        min-height: 116px;
+        grid-template-areas: "title title" "state viewport" "zoom zoom";
+      }
+      .canvas-toolbar > .toolbar-group { justify-self: end; }
+    }
+
+    .canvas-scroll {
+      position: relative;
+      min-height: 0;
+      overflow: auto;
+      background-color: var(--canvas);
+      background-image: radial-gradient(var(--canvas-grid) 0.75px, transparent 0.75px);
+      background-size: 18px 18px;
+    }
+
+    .canvas-viewport { min-width: 100%; min-height: 100%; display: grid; place-items: center; padding: 30px; }
+    .scale-wrap { position: relative; width: max-content; height: max-content; }
+
+    .prototype-frame {
+      position: relative;
+      width: 1440px;
+      height: 813px;
+      overflow: hidden;
+      border: 1px solid #11161d;
+      border-radius: 8px;
+      background: #cdd6de;
+      box-shadow: 0 22px 58px rgba(0, 0, 0, 0.34);
+      isolation: isolate;
+      transform-origin: top left;
+    }
+
+    .prototype-frame iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: #7db8d6;
+    }
+
+    .wallpaper {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      padding: 0;
+      background: url("assets/latest-cloud-field-wallpaper.jpg") center center / cover no-repeat;
+      cursor: pointer;
+    }
+    .wallpaper::after { content: ""; position: absolute; inset: 0; background: rgba(8, 22, 31, 0.06); }
+
+    .browser-bar {
+      position: absolute;
+      z-index: 20;
+      inset: 0 0 auto;
+      height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 11px;
+      border: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.48);
+      background: rgba(224, 236, 243, 0.77);
+      backdrop-filter: blur(18px) saturate(1.08);
+      color: #3a4653;
+      cursor: pointer;
+    }
+
+    .browser-bar.is-selected-surface { box-shadow: inset 0 -3px 0 var(--accent); }
+    .browser-nav { display: flex; align-items: center; gap: 2px; }
+    .nav-icon { width: 28px; height: 30px; display: grid; place-items: center; border-radius: 6px; }
+    .nav-icon svg { width: 15px; height: 15px; }
+    .tab-strip { min-width: 0; flex: 1; display: flex; align-items: center; gap: 7px; }
+    .browser-tab {
+      min-width: 150px;
+      max-width: 270px;
+      height: 34px;
+      flex: 1 1 190px;
+      border: 1px solid rgba(255, 255, 255, 0.54);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 11px;
+      background: rgba(255, 255, 255, 0.35);
+      color: #53606e;
+      font-size: 11px;
+    }
+    .browser-tab.active { background: rgba(255, 255, 255, 0.9); color: #2b3541; }
+    .browser-tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .browser-actions { display: flex; align-items: center; gap: 4px; }
+    .scene-icon-btn {
+      width: 36px;
+      height: 36px;
+      border: 1px solid rgba(255, 255, 255, 0.52);
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.36);
+      color: #394655;
+      cursor: pointer;
+    }
+    .scene-icon-btn:hover, .scene-icon-btn.is-active { background: rgba(255, 255, 255, 0.92); }
+    .scene-icon-btn.is-selected-surface { outline: 3px solid rgba(40, 103, 216, 0.42); outline-offset: 2px; }
+    .scene-icon-btn svg { width: 16px; height: 16px; }
+
+    .search-box {
+      position: absolute;
+      z-index: 8;
+      left: 50%;
+      top: 54px;
+      width: min(480px, 36%);
+      height: 44px;
+      transform: translateX(-50%);
+      border: 1px solid rgba(255, 255, 255, 0.84);
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 15px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #6c7581;
+      box-shadow: 0 14px 34px rgba(17, 28, 38, 0.16);
+      backdrop-filter: blur(10px);
+      cursor: pointer;
+    }
+    .search-box.is-selected-surface { outline: 3px solid rgba(40, 103, 216, 0.46); outline-offset: 3px; }
+    .search-box svg { width: 17px; height: 17px; }
+    .search-copy { flex: 1; text-align: left; font-size: 12px; }
+    .search-tools { display: flex; align-items: center; gap: 6px; }
+    .search-tool { width: 28px; height: 28px; border-radius: 6px; display: grid; place-items: center; color: #525e6d; }
+
+    .search-suggestions {
+      position: absolute;
+      z-index: 9;
+      left: 50%;
+      top: 106px;
+      width: min(480px, 36%);
+      transform: translateX(-50%);
+      border: 1px solid rgba(207, 214, 222, 0.88);
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 16px 38px rgba(17, 28, 38, 0.2);
+    }
+    .suggestion { min-height: 38px; display: flex; align-items: center; gap: 9px; padding: 0 13px; border-bottom: 1px solid #edf0f3; color: #4e5865; font-size: 11px; }
+    .suggestion:last-child { border-bottom: 0; }
+
+    .folder-rail {
+      position: absolute;
+      z-index: 10;
+      left: 22px;
+      right: 22px;
+      bottom: 108px;
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      padding: 4px 5px;
+      border-radius: 7px;
+      background: rgba(22, 31, 35, 0.28);
+      backdrop-filter: blur(7px);
+      cursor: pointer;
+    }
+    .folder-rail.is-selected-surface { outline: 3px solid rgba(40, 103, 216, 0.52); outline-offset: 2px; }
+    .folder-chip { height: 26px; flex: 0 0 auto; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 5px; display: inline-flex; align-items: center; gap: 5px; padding: 0 9px; background: rgba(255, 255, 255, 0.12); color: #fff; font-size: 10px; }
+
+    .dock {
+      position: absolute;
+      z-index: 11;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      min-height: 98px;
+      display: flex;
+      align-items: end;
+      gap: 12px;
+      padding: 11px 20px 16px;
+      border: 0;
+      background: rgba(15, 23, 27, 0.6);
+      backdrop-filter: blur(13px) saturate(1.06);
+      cursor: pointer;
+    }
+    .dock.is-selected-surface { box-shadow: inset 0 3px 0 var(--accent); }
+    .dock-logo {
+      position: relative;
+      width: 56px;
+      border: 0;
+      display: grid;
+      justify-items: center;
+      gap: 4px;
+      padding: 0;
+      background: transparent;
+      color: #fff;
+      cursor: pointer;
+      font-size: 10px;
+    }
+    .dock-logo-icon { width: 48px; height: 48px; border-radius: 11px; display: grid; place-items: center; color: #fff; font-size: 16px; font-weight: 750; transition: transform 120ms ease; }
+    .dock-logo:hover .dock-logo-icon { transform: translateY(-4px); }
+    .dock-logo.is-selected-surface .dock-logo-icon { outline: 3px solid rgba(98, 157, 255, 0.86); outline-offset: 3px; }
+    .dock-count { position: absolute; top: -5px; right: 0; min-width: 18px; height: 18px; border-radius: 9px; display: grid; place-items: center; padding: 0 4px; background: #2f73eb; color: #fff; font-size: 9px; }
+    .dock-actions { margin-left: auto; align-self: center; display: flex; align-items: center; gap: 5px; }
+    .dock-action { width: 31px; height: 31px; border: 1px solid rgba(255, 255, 255, 0.13); border-radius: 6px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.1); color: #fff; cursor: pointer; }
+    .dock-action:hover, .dock-action.is-active, .dock-action.is-selected-surface { background: rgba(255, 255, 255, 0.22); }
+    .dock-action svg { width: 14px; height: 14px; }
+
+    .floating-panel {
+      position: absolute;
+      z-index: 30;
+      border: 1px solid #cbd1d8;
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: var(--shadow);
+      color: #29323d;
+    }
+    .floating-panel.is-selected-surface { outline: 3px solid rgba(40, 103, 216, 0.45); outline-offset: 3px; }
+    .floating-head { min-height: 43px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 13px; border-bottom: 1px solid #dce1e6; background: #f7f8fa; font-size: 12px; font-weight: 700; }
+    .floating-head small { color: #7a828d; font-size: 9px; font-weight: 500; }
+    .floating-body { padding: 13px; }
+
+    .save-panel { top: 79px; right: 24px; width: 365px; }
+    .form-field {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid #d5dae0;
+      border-radius: 6px;
+      display: grid;
+      grid-template-columns: 70px minmax(0, 1fr);
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 8px;
+      padding: 0 9px;
+      background: #fff;
+      color: #4f5966;
+      cursor: pointer;
+      text-align: left;
+      font-size: 10px;
+    }
+    .form-field:hover, .form-field.is-selected-element { border-color: #6e9cee; box-shadow: 0 0 0 2px rgba(40, 103, 216, 0.1); }
+    .field-label { color: #858d98; }
+    .field-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tag-editor { width: 100%; border: 1px solid #d5dae0; border-radius: 6px; margin-bottom: 8px; padding: 8px 9px; background: #fff; cursor: pointer; text-align: left; }
+    .tag-editor:hover, .tag-editor.is-selected-element { border-color: #6e9cee; box-shadow: 0 0 0 2px rgba(40, 103, 216, 0.1); }
+    .field-caption { display: block; margin-bottom: 7px; color: #858d98; font-size: 10px; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 5px; }
+    .tag { min-height: 23px; border: 1px solid #d8dde3; border-radius: 12px; display: inline-flex; align-items: center; padding: 0 8px; background: #f2f4f6; color: #586270; font-size: 9px; }
+    .popup-status { display: flex; align-items: center; gap: 8px; min-height: 38px; margin-bottom: 8px; padding: 0 9px; border: 1px solid #cfe6d6; border-radius: 6px; background: #f1fbf4; color: #25643a; font-size: 10px; font-weight: 650; }
+    .popup-status svg { width: 15px; height: 15px; }
+    .popup-search { width: 100%; height: 34px; margin-bottom: 8px; border: 1px solid #d5dae0; border-radius: 6px; display: flex; align-items: center; gap: 7px; padding: 0 9px; background: #fff; color: #8a929c; font-size: 10px; }
+    .popup-search svg { width: 14px; height: 14px; }
+    .popup-tag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+    .popup-tag-option { min-height: 30px; border: 1px solid #d8dde3; border-radius: 6px; display: flex; align-items: center; gap: 6px; padding: 0 8px; background: #fff; color: #5b6571; font-size: 9px; }
+    .popup-tag-option.is-on { border-color: #9db9ec; background: #edf4ff; color: #2457ad; }
+    .popup-footer { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding-top: 10px; border-top: 1px solid #e2e6ea; }
+    .popup-link, .popup-done { height: 34px; border-radius: 6px; cursor: pointer; font-size: 10px; }
+    .popup-link { border: 1px solid transparent; padding: 0 7px; text-align: left; background: transparent; color: #a43f3f; }
+    .popup-link:hover, .popup-link.is-selected-element { background: #fff1f1; }
+    .popup-done { min-width: 72px; border: 0; padding: 0 14px; background: var(--accent); color: #fff; font-weight: 650; }
+    .popup-done:hover, .popup-done.is-selected-element { background: #235bc0; box-shadow: 0 0 0 3px rgba(40, 103, 216, 0.18); }
+    .primary-action { width: 100%; height: 36px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; cursor: pointer; font-weight: 650; font-size: 11px; }
+    .primary-action:hover, .primary-action.is-selected-element { background: #235bc0; box-shadow: 0 0 0 3px rgba(40, 103, 216, 0.18); }
+
+    .collection-panel { left: 50%; bottom: 118px; width: min(790px, 72%); transform: translateX(-50%); }
+    .collection-layout { display: grid; grid-template-columns: minmax(0, 1fr) 176px; gap: 12px; }
+    .saved-list { min-width: 0; }
+    .saved-item { min-height: 58px; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto auto; align-items: center; gap: 9px; padding: 7px 5px; border-bottom: 1px solid #e5e8ec; cursor: pointer; }
+    .saved-item:last-child { border-bottom: 0; }
+    .saved-item:hover { background: #f4f6f8; }
+    .saved-item.is-hidden { display: none; }
+    .saved-icon { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: #171c23; color: #fff; font-weight: 750; }
+    .saved-copy { min-width: 0; }
+    .saved-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; font-weight: 650; }
+    .saved-sub { margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #7d8590; font-size: 9px; }
+    .item-more { width: 27px; height: 27px; border: 0; border-radius: 5px; display: grid; place-items: center; background: transparent; color: #707985; cursor: pointer; }
+    .item-more:hover, .item-more.is-selected-element { background: #e9edf1; color: #2f3945; }
+    .facet-list { border-left: 1px solid #e1e5e9; padding-left: 10px; }
+    .facet-button { width: 100%; height: 33px; border: 1px solid transparent; border-radius: 6px; display: flex; align-items: center; justify-content: space-between; padding: 0 8px; background: transparent; color: #56606d; cursor: pointer; font-size: 10px; }
+    .facet-button:hover, .facet-button.is-active, .facet-button.is-selected-element { border-color: #cbd9f3; background: var(--accent-soft); color: #2457ad; }
+
+    .context-menu { position: absolute; z-index: 42; right: 58px; bottom: 188px; width: 190px; border: 1px solid #cbd1d8; border-radius: 7px; padding: 5px; background: #fff; box-shadow: 0 16px 38px rgba(18, 26, 37, 0.22); }
+    .context-item { min-height: 30px; border-radius: 5px; display: flex; align-items: center; gap: 8px; padding: 0 8px; color: #414b57; font-size: 10px; }
+    .context-item:hover { background: #eef1f4; }
+    .context-item.danger { color: var(--danger); }
+    .context-rule { margin-top: 4px; padding: 7px 8px 3px; border-top: 1px solid #e2e6ea; color: #7e8691; font-size: 9px; line-height: 1.45; }
+
+    .settings-panel { right: 22px; bottom: 110px; width: 250px; }
+    .setting-row { min-height: 39px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; border-bottom: 1px solid #e8ebee; color: #4b5562; font-size: 10px; }
+    .setting-row:last-child { border-bottom: 0; }
+    .mini-control { height: 26px; border: 1px solid #d6dbe1; border-radius: 5px; display: flex; align-items: center; gap: 3px; padding: 2px; background: #f1f3f5; }
+    .mini-option { min-width: 26px; height: 20px; border: 0; border-radius: 4px; background: transparent; color: #66707c; font-size: 9px; }
+    .mini-option.active { background: #fff; color: #2457ad; box-shadow: 0 1px 2px rgba(18, 26, 37, 0.1); }
+
+    .toast { position: absolute; z-index: 60; left: 50%; bottom: 123px; min-width: 240px; height: 38px; border-radius: 7px; display: flex; align-items: center; justify-content: center; transform: translateX(-50%); background: #20262d; color: #fff; box-shadow: 0 13px 30px rgba(0,0,0,.24); font-size: 10px; }
+
+    .canvas-statusbar { min-height: 28px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 10px; border-top: 1px solid #3a3f46; background: #202328; color: #aeb4bd; font-size: 9px; }
+    .canvas-statusbar strong { color: #d8dce2; font-weight: 600; }
+
+    .inspector-scroll { background: #fff; }
+    .inspector-summary { padding: 12px 13px; border-bottom: 1px solid #e1e5e9; background: #fbfcfd; }
+    .status-line { justify-content: space-between; gap: 10px; margin-bottom: 7px; }
+    .status-label { border-radius: 10px; padding: 2px 7px; background: #fff1dd; color: var(--wait); font-size: 9px; }
+    .status-label.done { background: #e6f3eb; color: var(--done); }
+    .summary-goal { margin: 0; color: #535d6a; font-size: 10px; line-height: 1.55; }
+
+    .inspector-section { padding: 12px 13px; border-bottom: 1px solid #e4e7eb; }
+    .section-heading { justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .section-heading h2 { margin: 0; color: #626b77; font-size: 10px; font-weight: 750; }
+    .section-count { color: #939aa4; font-size: 9px; }
+    .requirement-list, .question-list { margin: 0; padding: 0; list-style: none; }
+    .requirement-list li, .question-list li { position: relative; padding: 6px 0 6px 14px; border-bottom: 1px solid #eff1f3; color: #4b5562; font-size: 10px; line-height: 1.5; }
+    .requirement-list li:last-child, .question-list li:last-child { border-bottom: 0; }
+    .requirement-list li::before { content: ""; position: absolute; left: 1px; top: 12px; width: 5px; height: 5px; border-radius: 50%; background: #88909b; }
+    .question-list li::before { content: "?"; position: absolute; left: 0; top: 6px; color: var(--wait); font-weight: 800; }
+
+    .content-table { width: 100%; border-collapse: collapse; font-size: 9px; }
+    .content-table th, .content-table td { padding: 7px 5px; border-bottom: 1px solid #e9ecef; text-align: left; vertical-align: top; line-height: 1.45; }
+    .content-table th { color: #808894; font-weight: 650; }
+    .content-table td { color: #4d5764; }
+    .content-table tr:last-child td { border-bottom: 0; }
+    .required-mark { color: var(--danger); }
+
+    .property-grid { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 0 8px; font-size: 10px; }
+    .property-grid dt, .property-grid dd { margin: 0; padding: 6px 0; border-bottom: 1px solid #edf0f2; line-height: 1.45; }
+    .property-grid dt { color: #858d98; }
+    .property-grid dd { color: #46505d; }
+    .property-grid dt:last-of-type, .property-grid dd:last-of-type { border-bottom: 0; }
+    .figma-links { display: flex; flex-wrap: wrap; gap: 4px; }
+    .figma-links a { border-radius: 4px; padding: 2px 5px; color: #2457ad; background: #edf4ff; text-decoration: none; }
+    .figma-links a:hover { background: #dce9ff; }
+
+    details.inspector-details { border-bottom: 1px solid #e4e7eb; background: #fff; }
+    details.inspector-details summary { min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 13px; cursor: pointer; color: #626b77; font-size: 10px; font-weight: 700; list-style: none; }
+    details.inspector-details summary::-webkit-details-marker { display: none; }
+    details.inspector-details summary::after { content: "+"; color: #858d98; font-size: 14px; font-weight: 400; }
+    details.inspector-details[open] summary::after { content: "−"; }
+    .details-body { padding: 0 13px 12px; }
+    .change-row { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; padding: 6px 0; border-bottom: 1px solid #edf0f2; color: #515b68; font-size: 9px; line-height: 1.45; }
+    .change-row:last-child { border-bottom: 0; }
+    .change-date { color: #8a929d; }
+    .note-area { width: 100%; min-height: 130px; resize: vertical; border: 1px solid #d6dbe1; border-radius: 6px; padding: 8px; outline: none; background: #fbfcfd; color: #404a57; font-size: 10px; line-height: 1.55; }
+    .note-area:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(40, 103, 216, 0.1); }
+    .note-hint { margin: 6px 0 0; color: #8a929d; font-size: 9px; line-height: 1.45; }
+
+    /* ZERO Workbench component and state layer. */
+    :where(button, a, input, select, textarea, summary):focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      box-shadow: none;
+    }
+    :where(button, .text-btn):active:not(:disabled):not([aria-disabled="true"]) {
+      transform: translateY(1px);
+      filter: brightness(.96);
+    }
+    :where(button, input, select, textarea):disabled,
+    :where(button, input, select, textarea)[aria-disabled="true"] {
+      color: var(--disabled);
+      cursor: not-allowed;
+      opacity: .62;
+    }
+    :where(button, [role="button"]).is-loading,
+    :where(button, [role="button"])[aria-busy="true"] { cursor: progress; }
+    :where(button, [role="button"]).is-loading svg,
+    :where(button, [role="button"])[aria-busy="true"] svg { animation: workbench-spin .8s linear infinite; }
+
+    .icon-btn, .text-btn {
+      min-height: var(--control-h);
+      height: var(--control-h);
+      border-radius: 8px;
+      font-size: var(--type-ui);
+      line-height: var(--type-ui-line);
+    }
+    .icon-btn { width: var(--icon-control); min-width: var(--icon-control); }
+    .brand { font-size: var(--type-ui); }
+    .brand-mark { width: 24px; height: 24px; font-size: 12px; }
+    .brand-version, .pane-title span, .breadcrumb, .section-count,
+    .change-date, .note-hint, .canvas-statusbar, .status-label,
+    .selection-chip, .question-count { font-size: var(--type-aux); line-height: var(--type-aux-line); }
+    .pane-title strong, .group-button, .module-button, .search-input,
+    .viewport-select, .summary-goal, .section-heading h2,
+    .requirement-list li, .question-list li, .property-grid,
+    details.inspector-details summary, .note-area { font-size: var(--type-ui); line-height: var(--type-ui-line); }
+    .pane-title span { margin-top: 1px; }
+    .search-input, .viewport-select { height: var(--control-h); border-radius: 8px; }
+    .group-button { min-height: 36px; padding: 6px; }
+    .module-button { min-height: 38px; padding-top: 6px; padding-bottom: 6px; }
+    .question-count { min-width: 20px; height: 20px; border-radius: 10px; }
+    .canvas-toolbar { min-height: 64px; }
+    .canvas-title-line h1 { font-size: 16px; line-height: 24px; }
+    .canvas-statusbar { min-height: 34px; padding: 6px 12px; }
+    .inspector-summary, .inspector-section { padding: 14px 16px; }
+    .content-table { font-size: var(--type-aux); line-height: var(--type-aux-line); }
+    .content-table th, .content-table td { padding: 8px 6px; }
+    .figma-links a { min-height: 28px; display: inline-flex; align-items: center; padding: 4px 7px; }
+    details.inspector-details summary { min-height: 44px; padding: 0 16px; }
+    .details-body { padding: 0 16px 14px; }
+    .change-row { grid-template-columns: 84px minmax(0, 1fr); font-size: var(--type-aux); line-height: var(--type-aux-line); }
+    .note-area { min-height: 144px; padding: 10px; }
+    .resizer { width: 8px; touch-action: none; }
+    .resizer::before { content: ""; position: absolute; inset: 0 -10px; }
+    .resizer::after { inset: 0 3px; background: #aeb4bd; }
+    .resizer:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+      box-shadow: none;
+    }
+
+    .prototype-frame.is-loading::before {
+      content: "正在载入交互原型";
+      position: absolute;
+      z-index: 3;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding-top: 46px;
+      color: #4e5865;
+      background: rgba(238, 241, 244, .94);
+      font-size: var(--type-ui);
+    }
+    .prototype-frame.is-loading::after {
+      content: "";
+      position: absolute;
+      z-index: 4;
+      left: 50%;
+      top: 50%;
+      width: 22px;
+      height: 22px;
+      margin: -20px 0 0 -11px;
+      border: 2px solid rgba(40, 103, 216, .2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: workbench-spin .8s linear infinite;
+    }
+
+    .ui-tooltip {
+      position: fixed;
+      z-index: 100;
+      max-width: min(280px, calc(100vw - 24px));
+      padding: 6px 8px;
+      border-radius: 8px;
+      color: #fff;
+      background: rgba(24, 28, 34, .96);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .2);
+      font-size: var(--type-aux);
+      line-height: var(--type-aux-line);
+      pointer-events: none;
+    }
+
+    @keyframes workbench-spin { to { transform: rotate(360deg); } }
+
+    @media (min-width: 901px) {
+      body.left-hidden .left-pane, body.right-hidden .right-pane { display: none; }
+    }
+
+    @media (max-width: 1180px) {
+      :root { --left-w: 232px; --right-w: 316px; }
+      .brand-version { display: none; }
+    }
+
+    @media (max-width: 900px) {
+      .workspace { display: grid; grid-template-columns: minmax(0, 1fr) !important; }
+      .center-pane { grid-column: 1; height: 100%; }
+      .resizer { display: none; }
+      .left-pane, .right-pane {
+        position: fixed;
+        z-index: 50;
+        top: var(--topbar-h);
+        bottom: 0;
+        width: min(360px, calc(100vw - 24px));
+        box-shadow: 0 18px 52px rgba(17, 24, 34, .32);
+        visibility: visible;
+        pointer-events: auto;
+        transition: transform 180ms ease, visibility 180ms ease;
+      }
+      .left-pane { left: 0; border-right: 1px solid var(--line-strong); transform: translateX(0); }
+      .right-pane { right: 0; border-left: 1px solid var(--line-strong); transform: translateX(0); }
+      body.left-hidden .left-pane { transform: translateX(-104%); visibility: hidden; pointer-events: none; }
+      body.right-hidden .right-pane { transform: translateX(104%); visibility: hidden; pointer-events: none; }
+      .canvas-toolbar { min-height: 112px; }
+      .canvas-viewport { padding: 20px; }
+    }
+
+    @media (max-width: 640px) {
+      .topbar { gap: 8px; padding-left: 10px; }
+      .brand { gap: 6px; }
+      .topbar .text-btn { width: var(--icon-control); padding: 0; }
+      .topbar .text-btn span { display: none; }
+      .canvas-toolbar { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 8px; padding: 8px; }
+      .popup-state-select { min-width: 0; max-width: calc(100vw - 106px); }
+      .canvas-statusbar { align-items: flex-start; flex-direction: column; gap: 2px; }
+      .canvas-viewport { padding: 14px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">Z</span>
+        <span>ZERO 新标签页</span>
+        <span class="brand-version">需求探索工作台 V4</span>
+      </div>
+      <div class="actions" aria-label="布局控制">
+        <a class="text-btn" href="high-fi-demo.html" target="_blank" rel="noopener" title="打开最新原型高保真 Demo" aria-label="打开最新原型高保真 Demo"><i data-lucide="monitor-up"></i><span>高保真 Demo</span></a>
+        <button class="icon-btn" id="toggle-left" type="button" title="显示或隐藏功能结构" aria-label="显示或隐藏功能结构" aria-controls="left-pane" aria-pressed="true"><i data-lucide="panel-left"></i></button>
+        <button class="icon-btn" id="focus-canvas" type="button" title="聚焦中央原型" aria-label="聚焦中央原型" aria-pressed="false"><i data-lucide="maximize-2"></i></button>
+        <button class="icon-btn" id="toggle-right" type="button" title="显示或隐藏需求详情" aria-label="显示或隐藏需求详情" aria-controls="right-pane" aria-pressed="true"><i data-lucide="panel-right"></i></button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="pane left-pane" id="left-pane" aria-label="功能结构">
+        <div class="pane-head">
+          <div class="pane-title">
+            <strong>功能结构</strong>
+            <span id="module-total">3 个功能域 · 10 个模块</span>
+          </div>
+          <button class="icon-btn" id="collapse-groups" type="button" title="收起全部" aria-label="收起或展开全部功能组"><i data-lucide="list-collapse"></i></button>
+        </div>
+        <div class="search-area">
+          <div class="search-wrap">
+            <i data-lucide="search"></i>
+            <input class="search-input" id="feature-search" type="search" placeholder="搜索功能模块" aria-label="搜索功能模块">
+          </div>
+        </div>
+        <nav class="feature-scroll" aria-label="两级功能结构">
+          <ul class="feature-tree" id="feature-tree"></ul>
+        </nav>
+      </aside>
+
+      <div class="resizer left-resizer" id="left-resizer" role="separator" tabindex="0" aria-label="调整功能结构栏宽度" aria-orientation="vertical" aria-valuemin="218" aria-valuemax="420"></div>
+
+      <section class="center-pane" aria-label="交互原型">
+        <header class="canvas-toolbar">
+          <div class="canvas-title">
+            <div class="breadcrumb" id="breadcrumb">保存与采集 / M03</div>
+            <div class="canvas-title-line">
+              <h1 id="canvas-title">M03 插件保存面板</h1>
+              <span class="selection-chip" id="selection-chip">模块</span>
+            </div>
+          </div>
+
+          <select class="viewport-select popup-state-select" id="popup-state-select" aria-label="Popup 验收状态">
+            <option value="">真实交互流程</option>
+            <optgroup label="主面板 S01-S12">
+              <option value="S01">S01 默认成功态</option>
+              <option value="S02">S02 关联搜索</option>
+              <option value="S03">S03 单标签已选</option>
+              <option value="S04">S04 多标签已选</option>
+              <option value="S05">S05 已选标签默认态</option>
+              <option value="S06">S06 精确匹配</option>
+              <option value="S07">S07 无搜索结果</option>
+              <option value="S08">S08 标签空状态</option>
+              <option value="S09">S09 长标签与溢出</option>
+              <option value="S10">S10 初始保存失败</option>
+              <option value="S11">S11 新建标签失败</option>
+              <option value="S12">S12 标签修改失败</option>
+            </optgroup>
+            <optgroup label="收藏夹 F01-F08">
+              <option value="F01">F01 收藏夹默认态</option>
+              <option value="F02">F02 收藏夹搜索命中</option>
+              <option value="F03">F03 收藏夹精确匹配</option>
+              <option value="F04">F04 新建收藏夹入口</option>
+              <option value="F05">F05 收藏夹空状态</option>
+              <option value="F06">F06 长路径</option>
+              <option value="F07">F07 新建收藏夹失败</option>
+              <option value="F08">F08 切换收藏夹失败</option>
+            </optgroup>
+          </select>
+
+          <select class="viewport-select" id="viewport-select" aria-label="原型视口宽度">
+            <option value="fit">适应窗口</option>
+            <option value="1280">1280 宽</option>
+            <option value="1440">1440 宽</option>
+            <option value="1920">1920 宽</option>
+          </select>
+
+          <div class="toolbar-group" aria-label="缩放控制">
+            <button class="icon-btn" id="zoom-out" type="button" title="缩小" aria-label="缩小原型"><i data-lucide="minus"></i></button>
+            <button class="text-btn zoom-value" id="zoom-value" type="button" title="恢复实际尺寸">100%</button>
+            <button class="icon-btn" id="zoom-in" type="button" title="放大" aria-label="放大原型"><i data-lucide="plus"></i></button>
+            <button class="icon-btn" id="zoom-fit" type="button" title="适应窗口" aria-label="原型适应窗口"><i data-lucide="scan"></i></button>
+          </div>
+        </header>
+
+        <div class="canvas-scroll" id="canvas-scroll">
+          <div class="canvas-viewport">
+            <div class="scale-wrap" id="scale-wrap">
+              <div class="prototype-frame" id="prototype-frame"></div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="canvas-statusbar">
+          <span id="interaction-hint">可直接点击原型中的区域，功能结构和需求详情会同步定位。</span>
+          <span><strong id="selected-path">M03 插件保存面板</strong></span>
+        </footer>
+      </section>
+
+      <div class="resizer right-resizer" id="right-resizer" role="separator" tabindex="0" aria-label="调整需求详情栏宽度" aria-orientation="vertical" aria-valuemin="286" aria-valuemax="520"></div>
+
+      <aside class="pane right-pane" id="right-pane" aria-label="需求详情">
+        <div class="pane-head">
+          <div class="pane-title">
+            <strong id="inspector-title">M03 插件保存面板</strong>
+            <span id="inspector-context">模块需求</span>
+          </div>
+          <button class="icon-btn" id="close-right" type="button" title="隐藏需求详情" aria-label="隐藏需求详情"><i data-lucide="x"></i></button>
+        </div>
+        <div class="inspector-scroll" id="inspector-content"></div>
+      </aside>
+    </main>
+  </div>
+
+  <div class="ui-tooltip" id="ui-tooltip" role="tooltip" hidden></div>
+  <script src="assets/lucide.min.js"></script>
+  <script>
+    const groups = [
+      { id: "capture", title: "保存与采集", modules: ["browser-shell", "save-panel"] },
+      { id: "manage", title: "浏览与管理", modules: ["domain-dock", "collection-panel", "tag-filter", "context-menu", "side-panel"] },
+      { id: "environment", title: "新标签页环境", modules: ["search-box", "wallpaper", "category-bar", "tool-zone"] }
+    ];
+
+    const modules = [
+      {
+        id: "M01", key: "browser-shell", title: "顶部浏览器壳", status: "done", statusLabel: "已初定",
+        goal: "表现 Chrome 内核浏览器的标签区、导航、插件入口与通透关系，并提供保存入口。",
+        confirmed: ["顶部区域是浏览器 chrome，不是网页导航。", "Demo 模拟标签页、导航、插件入口和毛玻璃。", "插件按钮可以打开保存面板。"],
+        content: [["标签页", "当前标签与示意标签", true], ["导航区", "后退、前进、刷新", true], ["插件入口", "打开保存面板", true]],
+        interactions: ["点击插件入口打开 M03 保存面板。", "插件入口打开后保持激活状态。"],
+        states: ["默认", "入口 hover", "保存面板打开"],
+        figma: [["875:39042", "875-39042"]],
+        questions: ["正式 Chrome 壳能否透出新标签页壁纸；若不能，正式演示采用哪条模拟路线？"],
+        notDo: ["真实标签页管理", "真实地址栏导航", "真实窗口控制"],
+        changes: [["2026-07-30", "确定 Demo 只模拟浏览器壳和插件入口。"]]
+      },
+      {
+        id: "M02", key: "domain-dock", title: "底部域名 Dock", status: "done", statusLabel: "已对齐",
+        goal: "把 Bookmark 按 URL 计算出的 domainKey 聚合成恢复入口；Dock 是派生视图，不是收藏夹。",
+        confirmed: ["产品文案统一使用站点 Dock，技术层保留 domainKey。", "默认按 Public Suffix List 的可注册域名合并子域名，并允许产品映射覆盖。", "小、中、大分别为 40 / 56 / 72px，槽位为 64 / 80 / 96px。", "外部 Dock、展开 Dock 和设置列表共享唯一 dockOrder。", "隐藏不删除 Bookmark，恢复后回到原顺序。"],
+        content: [["站点 logo", "按 domainKey 生成的聚合入口", true], ["Bookmark 数量", "hover 显示站点、域名和数量", true], ["站点名称", "设置内统一开关", false], ["全量展开", "溢出时查看全部未隐藏站点", true]],
+        interactions: ["hover 查看站点、域名和数量。", "点击站点入口打开同域名集合。", "外部与展开 Dock 支持就地拖拽。", "右键提供置前、置后和隐藏，不提供域名级删除。"],
+        states: ["默认", "hover", "数量刷新", "容量溢出", "展开", "隐藏", "拖拽"],
+        figma: [["875:39038", "875-39038"], ["876:40687", "876-40687"], ["875:39069", "875-39069"], ["892:40269", "892-40269"]],
+        questions: [],
+        notDo: ["跨域名移动 Bookmark", "把域名入口作为收藏夹", "完整 Chrome 书签同步"],
+        changes: [["2026-07-30", "改为 Bookmark 派生 Read Model。"], ["2026-08-02", "冻结名称、三档尺寸、PSL 合并和统一 dockOrder。"]]
+      },
+      {
+        id: "M03", key: "save-panel", title: "Popup 保存联动", status: "done", statusLabel: "已校正",
+        goal: "点击插件立即创建或恢复 Bookmark，并把单收藏夹、多标签结果同步到新标签页。",
+        confirmed: ["点击插件立即 Upsert Bookmark。", "新 Bookmark 默认未分类。", "重复 URL 恢复且不增加 Dock 数量。", "一条 Bookmark 一个 folderId、多个 tagIds。", "Popup 宿主固定 400px；内部布局 Fill。", "成功图标优先当前页 favicon，失败时回退 ZERO 插件图标。", "收藏夹二级页没有 Footer；选择或新建成功后即时保存并返回。", "完成只关闭。", "Popup 增加打开侧栏入口；本次打开不改变扩展图标默认行为。", "Demo 使用 localStorage；真实扩展使用 chrome.storage.local 真源与运行时通知。"],
+        content: [["收藏成功状态", "已收藏到你的空间", true], ["收藏夹入口", "单一 folderId", true], ["标签整理", "搜索、新增、多选和取消", true], ["Footer", "取消收藏、打开侧栏与完成", true]],
+        interactions: ["点击插件立即收藏并打开成功态。", "标签 mutation 即时保存。", "选择或新建收藏夹成功后即时返回主面板；失败时停留原页并支持重试。", "取消收藏单击立即生效；完成只关闭。", "打开侧栏关闭 Popup 并打开 M11，本次不修改默认入口设置。"],
+        states: ["主面板 S01-S09：默认、搜索、多选、空态、长标签与溢出。", "主面板 S10-S12：初始保存与标签 mutation 失败。", "收藏夹 F01-F08：默认、搜索、新建、空态、嵌套文件夹、长路径和失败重试。", "专项：200% 文本、键盘焦点、Reduced Motion、favicon 回退、320px 初始化宿主。"],
+        figma: [["848:43043 状态总板", "848-43043"], ["833:40442 当前实现", "833-40442"]],
+        questions: [],
+        notDo: ["标题和 URL 编辑", "网站详情", "统一保存按钮", "AI 推荐", "多收藏夹"],
+        changes: [["2026-07-30", "引用正式 Popup input，只维护联动。"], ["2026-07-30", "改为点击插件立即收藏。"], ["2026-08-04", "按 D-043 至 D-045 校正图标、固定宽度和收藏夹即时返回。"], ["2026-08-04", "按 D-047/D-048 改为即时取消，并补充紧凑嵌套收藏夹树；现行状态为 20 个。"]],
+        elements: {
+          folder: { title: "当前收藏夹", type: "单选入口", required: "是", source: "Bookmark.folderId", rule: "一条 Bookmark 只有一个 folderId；新建默认未分类。", interaction: "点击进入收藏夹二级页，选择成功后即时返回。", questions: [] },
+          tags: { title: "标签整理", type: "多选", required: "否", source: "全局 Tag", rule: "tagIds[] 可以为空或多选；修改后更新集合 Facet，Dock 数量不变。", interaction: "搜索、新增、选择和取消均即时保存。", questions: [] },
+          cancel: { title: "取消收藏", type: "文本操作", required: "是", source: "DeleteBookmark", rule: "单击立即取消；成功后从所有派生视图移除。", interaction: "点击后立即删除 Bookmark 并关闭 Popup。", questions: [] },
+          "side-panel": { title: "打开侧栏", type: "入口操作", required: "是", source: "Side Panel API", rule: "只打开本次 Side Panel，不修改扩展图标的默认行为。", interaction: "关闭 Popup 并打开 M11；真实扩展由用户手势触发 chrome.sidePanel.open。", questions: [] },
+          done: { title: "完成", type: "关闭操作", required: "是", source: "Popup UI", rule: "只关闭 Popup，不触发批量提交。", interaction: "关闭后保留已经确认接收的操作。", questions: [] }
+        }
+      },
+      {
+        id: "M04", key: "collection-panel", title: "域名集合面板", status: "done", statusLabel: "主结构已冻结",
+        goal: "查询并浏览同一 domainKey 下的 Bookmark；集合是派生结果，不是内容归属容器。",
+        confirmed: ["只展示当前域名内容。", "面板锚定点击 Logo 并在视口边缘自动校正。", "与普通收藏夹复用 Bookmark Collection。", "支持最近保存 / 名称排序。", "Bookmark 行常驻 favicon、标题、最多两个标签和更多按钮。", "URL、保存时间和收藏夹进入 hover、菜单或轻详情。", "删除 Bookmark 会影响所有视图。"],
+        content: [["域名信息", "站点名称、domainKey、数量", true], ["Bookmark 列表", "与收藏夹模式复用 favicon、标题、标签和更多按钮", true], ["标签 Facet", "右侧固定混合结构", true], ["排序", "最近保存 / 名称", true], ["锚点", "跟随当前 Logo 并自动校正", true]],
+        interactions: ["点击域名入口打开紧凑集合。", "点击 Bookmark 在当前标签页打开。", "切换最近保存 / 名称排序。", "选择 Facet 过滤；右键或更多打开菜单。", "点击空白、关闭或 Esc 关闭。"],
+        states: ["Closed", "OpenList", "Filtered", "EmptyFiltered", "LoadFailed", "ItemMenuOpen"],
+        questions: [],
+        notDo: ["复杂批量管理", "全文检索", "跨域名混排", "把集合当作文件夹"],
+        changes: [["2026-07-30", "明确集合为 domainKey 查询结果。"], ["2026-08-02", "冻结紧凑锚定浮层、最近保存倒序和极简行字段。"], ["2026-08-06", "与普通收藏夹统一 Bookmark Collection 组件和排序。"]]
+      },
+      {
+        id: "M05", key: "tag-filter", title: "标签筛选", status: "done", statusLabel: "规则已冻结",
+        goal: "用当前域名内 Tag Facet 快速过滤 Bookmark，第一轮只验证单标签筛选。",
+        confirmed: ["Tag 是全局实体。", "Facet 数量只统计当前 domainKey。", "首版固定单标签筛选。", "采用常用标签双列 + 其余标签单列。", "标签超过 8 个显示搜索。", "常用标签最多 6 个，最近使用优先、数量次优。"],
+        content: [["全部", "清除标签筛选", true], ["常用标签", "最多 6 个双列紧凑 Chip", true], ["其他标签", "数量倒序、名称稳定排序的单列", true], ["标签搜索", "超过 8 个标签时出现", false]],
+        interactions: ["点击标签立即过滤。", "再次点击当前标签或选择全部清除。", "搜索时隐藏常用分组并统一显示匹配结果。"],
+        states: ["All", "SingleTagSelected", "EmptyResult", "FacetFailed"],
+        questions: [],
+        notDo: ["多标签 AND/OR", "高级筛选语法", "独立标签后台", "AI 推荐"],
+        changes: [["2026-07-30", "确认全局 Tag + 域名内 Facet。"], ["2026-07-30", "第一轮固定单标签。"], ["2026-08-02", "冻结右侧混合 Facet、搜索条件和自动排序。"]]
+      },
+      {
+        id: "M06", key: "context-menu", title: "Bookmark 菜单", status: "done", statusLabel: "动作已冻结",
+        goal: "承载 Bookmark 低频操作，并明确单收藏夹和不可跨域规则。",
+        confirmed: ["点击行默认在当前标签页打开。", "菜单提供新标签页、新窗口、复制链接、管理标签、移动收藏夹和删除。", "一条 Bookmark 只有一个收藏夹。", "不支持移动到其他域名入口。", "删除使用独立轻量确认并支持即时撤销。"],
+        content: [["打开", "当前标签页默认；菜单补充新标签页和新窗口", true], ["复制链接", "写入剪贴板", true], ["管理标签", "修改 tagIds", true], ["移动到收藏夹", "替换 folderId", true], ["删除", "轻量确认 + 撤销", true]],
+        interactions: ["点击更多或右键打开同一菜单。", "执行后关闭并给出轻反馈。", "删除成功后列表、Facet、普通收藏夹和 Dock 数量同步。"],
+        states: ["Hidden", "OpenForItem", "ActionPending", "ActionDone", "ActionFailed", "DeleteConfirming"],
+        questions: [],
+        notDo: ["跨域名移动", "多收藏夹", "批量菜单", "复杂详情编辑器"],
+        changes: [["2026-07-30", "菜单动作改为 Bookmark 语义。"], ["2026-08-02", "按 Chrome 惯例冻结打开方式、菜单顺序和删除确认。"]]
+      },
+      {
+        id: "M07", key: "search-box", title: "中央搜索", status: "done", statusLabel: "核心语义已冻结",
+        goal: "用一个入口同时保留浏览器常规搜索与网址导航，并把已保存内容找回提升为 ZERO 的核心差异能力。",
+        confirmed: ["使用统一输入框，不要求用户预先切换模式。", "有效 URL 优先识别为网址导航。", "普通关键词默认保留搜索引擎搜索。", "匹配标题、URL、站点、标签或收藏夹时展示已保存内容结果。", "已保存结果和网页搜索在同一候选面板分层展示。", "左侧支持切换搜索引擎。", "AI 不进入首版默认提交行为。"],
+        content: [["搜索引擎", "左侧紧凑切换，当前支持 360 / Bing / Google", true], ["输入框", "网址、网页关键词和本地收藏内容统一输入", true], ["已保存结果", "标题、站点、收藏夹和标签摘要", true], ["范围筛选", "可切换为仅搜索已保存内容", true], ["添加与语音", "保留入口位置，能力后置", false]],
+        interactions: ["聚焦时展示最近保存。", "输入内容后实时匹配本地 Bookmark。", "有效 URL 作为第一优先意图。", "普通关键词保留当前搜索引擎结果。", "上下方向键选择，Enter 打开。", "点击本地结果进入对应站点集合。"],
+        states: ["默认", "最近保存", "本地命中", "网址识别", "仅收藏", "无结果", "空数据"],
+        figma: [["875:39113", "875-39113"]],
+        questions: [],
+        notDo: ["AI 默认提交", "语音识别", "命令面板", "搜索历史同步", "真实外部导航"],
+        changes: [["2026-07-31", "改为基础环境占位，避免把候选交互误写为已确定。"], ["2026-08-02", "按第一性原理冻结统一输入、意图识别、本地优先分层和 AI 后置。"]]
+      },
+      {
+        id: "M08", key: "wallpaper", title: "壁纸背景", status: "done", statusLabel: "MVP 边界已定",
+        goal: "当前用静态真实壁纸验证顶部通透和前景可读性；知识热点与场景空间统一后置。",
+        confirmed: ["Demo 使用真实静态壁纸资产。", "顶部希望透出同一背景。", "Dock 和浮层可使用局部遮罩与模糊保证可读。", "知识壁纸、AI 热点和场景空间不进入当前 Demo。"],
+        content: [["壁纸图像", "静态图片", true], ["裁切", "cover 居中", true], ["遮罩", "根据前景内容控制", true]],
+        interactions: ["点击背景进入壁纸模块上下文。", "浮层打开时根据需要增强局部可读性。"],
+        states: ["默认", "浮层打开", "Dock 展开"],
+        questions: [],
+        notDo: ["AI 图片热点", "知识卡片", "场景空间", "壁纸市场", "动态壁纸"],
+        changes: [["2026-07-31", "补回知识壁纸愿景，但明确全部后置。"]]
+      },
+      {
+        id: "M09", key: "category-bar", title: "普通收藏夹", status: "done", statusLabel: "结构已冻结",
+        goal: "通过唯一人工 folderId 浏览收藏内容，并使用站点筛选快速缩小当前收藏夹范围。",
+        confirmed: ["Bookmark 自动出现在域名派生视图中。", "Bookmark 只有一个人工 folderId。", "未分类始终存在。", "普通收藏夹与站点 Dock 是两套组织方式。", "点击底部 Chip 打开当前收藏夹，左侧站点栏只筛选当前收藏夹内容。", "与域名集合复用 Bookmark Collection，并保留 Chrome 兼容层级。"],
+        content: [["底部文件夹 Chip", "32px 条内的 24px 紧凑入口", true], ["站点筛选栏", "多站点时显示；单站点自动隐藏", true], ["Bookmark 列表", "与域名模式复用 favicon、标题、标签和更多按钮", true], ["标签 Facet", "右侧混合结构，标签多时搜索", true], ["层级与排序", "子收藏夹行、面包屑、最近保存 / 名称", true]],
+        interactions: ["点击底部 Chip 打开对应收藏夹，面板不重复展示收藏夹列表。", "点击站点或右侧标签只筛选当前收藏夹内容。", "切换最近保存 / 名称排序。", "子收藏夹作为内容行进入，并通过面包屑返回。", "右键与更多按钮复用 Bookmark 菜单。", "Bookmark 菜单可以替换 folderId。"],
+        states: ["Closed", "FolderOpen", "SiteFiltered", "TagFiltered", "ChildFolderOpen", "Sorted"],
+        figma: [["876:43231", "876-43231"]],
+        questions: [],
+        notDo: ["完整文件管理器", "多收藏夹", "复杂层级编辑"],
+        changes: [["2026-07-31", "保留唯一 folderId，降低新标签页入口方案确定度。"], ["2026-08-02", "接入 876:43231 的普通收藏夹面板。"], ["2026-08-02", "冻结站点筛选、紧凑结构和 Chrome 兼容层级。"], ["2026-08-06", "与域名集合统一 Bookmark Collection，标签改为右侧 Facet。"]]
+      },
+      {
+        id: "M10", key: "tool-zone", title: "设置与工具", status: "done", statusLabel: "设置已确定",
+        goal: "收纳 Dock 的低频展示设置；历史工具箱、虚拟角色和窗口管理不进入当前面板。",
+        confirmed: ["当前设置较少时使用一个集中面板，站点管理进入同容器子页。", "标题开关只放设置面板。", "尺寸使用 40 / 56 / 72px。", "站点管理支持搜索、显示/隐藏/回收站、拖拽、置前置后和恢复默认排序。", "域名级删除只在设置中提供，进入 30 天回收站并支持即时撤销。", "首版不做多选和批量操作。"],
+        content: [["标题显示", "统一开关", true], ["图标尺寸", "小 40 / 中 56 / 大 72px", true], ["站点管理", "搜索、排序、隐藏、恢复", true], ["回收站", "域名级删除、30 天保留和恢复", true]],
+        interactions: ["点击设置打开紧凑首页。", "进入同容器站点管理子页。", "搜索过滤时暂停拖拽。", "展开 Dock 保留为直接命令，不进入设置。"],
+        states: ["Closed", "Home", "SiteManagement", "Searching", "Hidden", "Trash", "DeleteConfirming", "UndoAvailable"],
+        questions: ["右下工具区除设置外，哪些候选图标是真实产品能力？"],
+        notDo: ["完整设置中心", "账号同步", "工具插件系统", "虚拟角色", "窗口管理"],
+        changes: [["2026-07-31", "移除未确认的自动/固定展开规则，并隔离历史工具方向。"], ["2026-08-02", "冻结当前单层设置、站点管理、隐藏恢复和域名级回收站。"]]
+      },
+      {
+        id: "M11", key: "side-panel", title: "浏览器收藏侧栏", status: "done", statusLabel: "结构已确定",
+        goal: "把正在使用的浏览器标签页与长期收藏资料放进可固定打开的侧栏，同时保持 Popup 的快速收藏职责。",
+        confirmed: ["打开 Side Panel 不自动收藏，Popup 继续打开即快速收藏。", "默认使用当前打开 / 已收藏双 Tab。", "当前窗口优先展开，其他普通窗口默认折叠，无痕窗口不混入。", "活动标签变化只更新当前网页状态，不重置下方浏览筛选。", "当前打开和已收藏都常驻最右侧独立滚动站点 Logo Rail。", "当前打开使用 32px 紧凑标签行，支持窗口 / Tab Group 两级折叠和单标签轻量分组。", "分组标题使用不同深色背景的 Hug Chip 和白色文字。", "当前打开行只显示 favicon 与常规字重中文语义标题，不显示域名。", "已收藏使用完整收藏夹树与当前文件夹网站上下双区，搜索、标签和站点始终叠加当前选择范围。", "首版只做轻量浏览和整理。"],
+        content: [["一级 Tab", "当前打开 / 已收藏", true], ["当前网页状态", "未收藏、已收藏、快速收藏与编辑", true], ["窗口与标签页", "32px 单行、多色分组 Chip、窗口 / Chrome Tab Group 折叠、切换/分组/收藏/关闭", true], ["当前打开站点 Rail", "约 20 个站点跨窗口筛选、独立滚动并自动展开命中窗口", true], ["收藏夹与网站", "完整树在上、当前文件夹网站在下，分隔条可拖拽和键盘调整", true], ["已收藏站点 Rail", "当前文件夹范围内按 domainKey 纵向筛选", true], ["标签与排序", "最近标签、完整面板、最近保存 / 名称", true]],
+        interactions: ["Popup Footer 左侧的打开侧栏按钮只打开本次 Side Panel，不改变默认入口。", "点击标签页跨窗口聚焦；行内未收藏图标可快速收藏。", "单一全部展开 / 收起按钮统一控制窗口和 Tab Group；单标签可加入已有组、新建组或移出组。", "当前打开按 Logo 跨窗口筛选，清除后恢复原窗口折叠状态。", "收藏夹树支持单支与全部展开/收起；选择后在下区显示直接归属网站。", "上下分隔条支持鼠标拖拽和 Arrow / Home / End 键盘调整。", "收藏夹、Logo、单标签和搜索组合查询统一 Bookmark。", "标签、排序和分组菜单支持外点、Escape 与焦点回收。"],
+        states: ["当前页未收藏 / 已收藏 / 受限", "多窗口与 Tab Group 展开 / 折叠", "加入已有组 / 新建组 / 移出组", "跨窗口 Logo + 搜索组合筛选", "收藏夹树展开 / 收起 / 选择", "双区高度最小 / 中间 / 最大", "当前文件夹内标签、站点和关键词筛选", "Loading / Empty / Error / Disabled"],
+        questions: ["真实 Chrome 中 default_popup 与 openPanelOnActionClick 的动态切换需要在生产扩展验证。", "非活动标签页完整正文采集的权限与降级策略需要生产验证。"],
+        notDo: ["多选和批量整理", "跨窗口拖拽", "组颜色 / 拖拽排序 / 整组删除", "文件夹结构管理", "真实 Chrome API 接入"],
+        changes: [["2026-08-06", "逐项确认双入口职责、双 Tab、多窗口、收藏状态、筛选结构与轻量管理边界。"], ["2026-08-06", "新增高保真 Side Panel 原型和 Popup 打开入口。"], ["2026-08-06", "用两个视图共享的右侧 Logo Rail 和统一逐级文件夹导航替换宽版左树 / 窄版抽屉。"], ["2026-08-07", "当前打开改为紧凑标签行，补全部展开 / 收起、明确 Tab Group 区块、单标签分组和 Logo Rail 独立滚动。"], ["2026-08-07", "分组标题升级为多色白字 Chip；当前打开移除可见域名，并将规模 Fixture 扩展到 31 个标签页和 20 个站点。"], ["2026-08-07", "按 D-059 改为完整收藏夹树与网站上下可调双区；展开/收起合并为单一按钮，标签行收紧为 32px。"]]
+      }
+    ];
+
+    const featureTree = document.getElementById("feature-tree");
+    const featureSearch = document.getElementById("feature-search");
+    const prototypeFrame = document.getElementById("prototype-frame");
+    const inspectorContent = document.getElementById("inspector-content");
+    const canvasScroll = document.getElementById("canvas-scroll");
+    const scaleWrap = document.getElementById("scale-wrap");
+    const viewportSelect = document.getElementById("viewport-select");
+    const popupStateSelect = document.getElementById("popup-state-select");
+    const uiTooltip = document.getElementById("ui-tooltip");
+
+    const initialParams = new URLSearchParams(location.search);
+    const popupFixtureStates = new Set(["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S12", "F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08"]);
+    const initialModuleToken = initialParams.get("module") || "";
+    const initialModule = modules.find((module) => module.key === initialModuleToken || module.id.toLowerCase() === initialModuleToken.toLowerCase());
+    let activeModuleKey = initialModule?.key || "save-panel";
+    let activePopupState = popupFixtureStates.has((initialParams.get("popup-state") || "").toUpperCase()) ? initialParams.get("popup-state").toUpperCase() : "";
+    const initialElementToken = initialParams.get("element");
+    let activeElementKey = initialElementToken && initialModule?.elements?.[initialElementToken] ? initialElementToken : null;
+    let expandedGroups = new Set(groups.map((group) => group.id));
+    let frameWidth = 1440;
+    let scale = 1;
+    let fitMode = true;
+    let savedCount = 3;
+    let activeTag = "all";
+    let currentBookmarkSaved = false;
+    let responsiveMode = "";
+    const popupFolders = ["未分类", "设计参考", "产品灵感"];
+    let popupFolder = popupFolders[0];
+    const popupTags = new Set();
+
+    function currentModule() { return modules.find((module) => module.key === activeModuleKey); }
+    function currentGroup() { return groups.find((group) => group.modules.includes(activeModuleKey)); }
+    function currentElement() { return activeElementKey ? currentModule().elements?.[activeElementKey] || null : null; }
+    function refreshIcons() {
+      if (window.lucide) window.lucide.createIcons();
+      prepareTooltips();
+    }
+
+    function prepareTooltips(root = document) {
+      root.querySelectorAll("button[title], a[title], [role='button'][title], [data-tooltip]").forEach((element) => {
+        if (!element.dataset.tooltip) element.dataset.tooltip = element.getAttribute("aria-label") || element.getAttribute("title") || "";
+        if (!element.getAttribute("aria-label") && element.dataset.tooltip) element.setAttribute("aria-label", element.dataset.tooltip);
+        element.removeAttribute("title");
+        if (element.dataset.tooltipBound === "true") return;
+        element.dataset.tooltipBound = "true";
+        element.addEventListener("mouseenter", () => showTooltip(element));
+        element.addEventListener("mouseleave", hideTooltip);
+        element.addEventListener("focus", () => showTooltip(element));
+        element.addEventListener("blur", hideTooltip);
+      });
+    }
+
+    function showTooltip(target) {
+      const copy = target.dataset.tooltip;
+      if (!copy) return;
+      uiTooltip.textContent = copy;
+      uiTooltip.hidden = false;
+      const targetRect = target.getBoundingClientRect();
+      const tooltipRect = uiTooltip.getBoundingClientRect();
+      const left = Math.max(8, Math.min(targetRect.left + targetRect.width / 2 - tooltipRect.width / 2, window.innerWidth - tooltipRect.width - 8));
+      const preferredTop = targetRect.bottom + 8;
+      const top = preferredTop + tooltipRect.height <= window.innerHeight - 8 ? preferredTop : Math.max(8, targetRect.top - tooltipRect.height - 8);
+      uiTooltip.style.left = left + "px";
+      uiTooltip.style.top = top + "px";
+    }
+
+    function hideTooltip() { uiTooltip.hidden = true; }
+
+    function renderFeatureTree() {
+      const query = featureSearch.value.trim().toLowerCase();
+      featureTree.innerHTML = "";
+      const visibleGroups = groups.map((group) => ({
+        ...group,
+        visibleModules: group.modules.map((key) => modules.find((module) => module.key === key)).filter((module) => {
+          return !query || [module.id, module.title, module.goal].join(" ").toLowerCase().includes(query);
+        })
+      })).filter((group) => group.visibleModules.length);
+
+      if (!visibleGroups.length) {
+        featureTree.innerHTML = '<li class="empty-tree">没有匹配的功能模块。</li>';
+        return;
+      }
+
+      visibleGroups.forEach((group) => {
+        const open = query ? true : expandedGroups.has(group.id);
+        const li = document.createElement("li");
+        li.className = "feature-group";
+        li.innerHTML = [
+          '<button class="group-button" type="button" data-group="' + group.id + '" aria-expanded="' + open + '">',
+          '<span class="chevron"><i data-lucide="chevron-down"></i></span>',
+          '<span>' + group.title + '</span>',
+          '<span class="question-count">' + group.visibleModules.length + '</span>',
+          '</button>',
+          '<ul class="feature-children" ' + (open ? '' : 'hidden') + '>',
+          group.visibleModules.map((module) => '<li><button class="module-button ' + (module.key === activeModuleKey ? 'is-active' : '') + '" type="button" data-module="' + module.key + '"><span class="module-main"><span class="status-dot ' + module.status + '"></span><span class="module-name">' + module.id + ' ' + module.title + '</span></span><span class="question-count" title="' + module.questions.length + ' 个待定问题">' + module.questions.length + '</span></button></li>').join(""),
+          '</ul>'
+        ].join("");
+        featureTree.appendChild(li);
+      });
+
+      featureTree.querySelectorAll("[data-group]").forEach((button) => button.addEventListener("click", () => {
+        const id = button.dataset.group;
+        if (expandedGroups.has(id)) expandedGroups.delete(id); else expandedGroups.add(id);
+        renderFeatureTree();
+      }));
+      featureTree.querySelectorAll("[data-module]").forEach((button) => button.addEventListener("click", () => selectModule(button.dataset.module)));
+      refreshIcons();
+    }
+
+    function selectModule(key) {
+      activeModuleKey = key;
+      activeElementKey = null;
+      activeTag = "all";
+      updateWorkbench();
+    }
+
+    function selectElement(moduleKey, elementKey) {
+      activeModuleKey = moduleKey;
+      activeElementKey = elementKey;
+      updateWorkbench();
+    }
+
+    function updateWorkbench(options = {}) {
+      const module = currentModule();
+      const group = currentGroup();
+      const element = currentElement();
+      const locationParams = new URLSearchParams(location.search);
+      locationParams.set("module", module.key);
+      if (activeElementKey) locationParams.set("element", activeElementKey); else locationParams.delete("element");
+      if (module.key === "save-panel" && activePopupState) locationParams.set("popup-state", activePopupState); else locationParams.delete("popup-state");
+      history.replaceState(null, "", location.pathname + "?" + locationParams.toString());
+      document.getElementById("breadcrumb").textContent = group.title + " / " + module.id;
+      document.getElementById("canvas-title").textContent = element ? element.title : module.id + " " + module.title;
+      const chip = document.getElementById("selection-chip");
+      chip.textContent = element ? "界面元素" : "功能模块";
+      chip.className = "selection-chip" + (element ? " element" : "");
+      document.getElementById("selected-path").textContent = element ? module.id + " / " + element.title : module.id + " " + module.title;
+      document.getElementById("interaction-hint").textContent = module.key === "save-panel" && activePopupState ? `正在查看 ${activePopupState} 固定验收状态；切回“真实交互流程”可继续完整操作。` : (element ? "当前选中界面元素；左侧保持在所属功能模块。" : (module.status === "wait" ? "当前模块仍在讨论；右侧会区分已知事实、候选方案和后置方向。" : "可直接点击原型中的区域，功能结构和需求详情会同步定位。"));
+      document.getElementById("inspector-title").textContent = element ? element.title : module.id + " " + module.title;
+      document.getElementById("inspector-context").textContent = element ? module.id + " " + module.title + " · 元素需求" : "模块需求";
+      popupStateSelect.hidden = module.key !== "save-panel";
+      popupStateSelect.value = module.key === "save-panel" ? activePopupState : "";
+      renderFeatureTree();
+      if (!options.skipPrototype) renderPrototype();
+      renderInspector();
+      if (fitMode) requestAnimationFrame(fitCanvas);
+    }
+
+    function renderPrototype() {
+      const module = currentModule();
+      const query = new URLSearchParams({ embed: "1", module: module.key });
+      if (activeElementKey) query.set("element", activeElementKey);
+      if (module.key === "save-panel" && activePopupState) query.set("ui-state", activePopupState);
+      prototypeFrame.classList.add("is-loading");
+      prototypeFrame.setAttribute("aria-busy", "true");
+      const source = module.key === "side-panel" ? "side-panel-demo.html?tab=open&current=saved" : "high-fi-demo.html?" + query.toString();
+      const title = module.key === "side-panel" ? "ZERO 浏览器收藏侧栏原型" : "ZERO 新标签页真实组件原型";
+      prototypeFrame.innerHTML = '<iframe id="live-prototype-frame" src="' + source + '" title="' + title + '"></iframe>';
+      prototypeFrame.querySelector("iframe").addEventListener("load", () => {
+        prototypeFrame.classList.remove("is-loading");
+        prototypeFrame.setAttribute("aria-busy", "false");
+      }, { once: true });
+    }
+
+    function browserBarMarkup(module) {
+      return [
+        '<div class="browser-bar ' + (module.key === "browser-shell" ? 'is-selected-surface' : '') + '" data-scene-module="browser-shell">',
+        '<span class="browser-nav"><span class="nav-icon"><i data-lucide="arrow-left"></i></span><span class="nav-icon"><i data-lucide="arrow-right"></i></span><span class="nav-icon"><i data-lucide="rotate-cw"></i></span></span>',
+        '<span class="tab-strip"><span class="browser-tab active"><i data-lucide="circle"></i><span>ZERO 新标签页</span></span><span class="browser-tab"><span>抖音创作者内容</span></span><span class="browser-tab"><span>知乎问答收藏</span></span></span>',
+        '<span class="browser-actions"><button class="scene-icon-btn" type="button" aria-label="新建标签页"><i data-lucide="plus"></i></button><button class="scene-icon-btn ' + (module.key === "save-panel" ? 'is-active is-selected-surface' : '') + '" type="button" data-scene-module="save-panel" aria-label="打开插件保存面板"><i data-lucide="diamond"></i></button></span>',
+        '</div>'
+      ].join("");
+    }
+
+    function searchMarkup(open, module) {
+      return [
+        '<button class="search-box ' + (module.key === "search-box" ? 'is-selected-surface' : '') + '" type="button" data-scene-module="search-box">',
+        '<span class="search-tool">360</span><span class="search-copy">搜索已保存内容或输入网址</span>',
+        '<span class="search-tools"><span class="search-tool"><i data-lucide="plus"></i></span><span class="search-tool"><i data-lucide="audio-lines"></i></span></span>',
+        '</button>',
+        open ? '<div class="search-suggestions"><div class="suggestion"><i data-lucide="bookmark"></i>已保存：ZERO 新标签页需求记录</div><div class="suggestion"><i data-lucide="link"></i>有效网址直接导航</div><div class="suggestion"><i data-lucide="globe"></i>使用当前搜索引擎搜索网页</div></div>' : ''
+      ].join("");
+    }
+
+    function folderMarkup(module) {
+      return '<button class="folder-rail ' + (module.key === "category-bar" ? 'is-selected-surface' : '') + '" type="button" data-scene-module="category-bar" title="点击收藏夹 Chip 打开对应的紧凑两区内容面板"><span class="folder-chip"><i data-lucide="inbox"></i>未分类</span><span class="folder-chip">设计参考</span><span class="folder-chip">产品灵感</span><span class="folder-chip">开发资料</span><span class="folder-chip">稍后阅读</span></button>';
+    }
+
+    function dockMarkup(module) {
+      const logos = [
+        ["抖", "抖音", "#171c23", savedCount], ["知", "知乎", "#2c70de", 2], ["B", "B站", "#df4e8d", 2], ["G", "GitHub", "#171c23", 1], ["F", "Figma", "#7455d6", 1], ["N", "Notion", "#46515e", 1]
+      ];
+      return [
+        '<div class="dock ' + (module.key === "domain-dock" ? 'is-selected-surface' : '') + '" data-scene-module="domain-dock">',
+        logos.map((logo, index) => '<button class="dock-logo ' + (module.key === "collection-panel" && index === 0 ? 'is-selected-surface' : '') + '" type="button" data-site-index="' + index + '"><span class="dock-logo-icon" style="background:' + logo[2] + '">' + logo[0] + '</span><span class="dock-count">' + logo[3] + '</span><span>' + logo[1] + '</span></button>').join(""),
+        '<span class="dock-actions"><button class="dock-action" type="button" aria-label="标题显示"><i data-lucide="type"></i></button><button class="dock-action" type="button" aria-label="排列方式"><i data-lucide="rows-3"></i></button><button class="dock-action" type="button" aria-label="展开 Dock"><i data-lucide="maximize"></i></button><button class="dock-action ' + (module.key === "tool-zone" ? 'is-active is-selected-surface' : '') + '" type="button" data-scene-module="tool-zone" aria-label="打开设置"><i data-lucide="settings-2"></i></button></span>',
+        '</div>'
+      ].join("");
+    }
+
+    function savePanelMarkup() {
+      const tagOptions = ["短视频", "灵感", "设计参考", "稍后阅读"];
+      return [
+        '<section class="floating-panel save-panel ' + (!activeElementKey ? 'is-selected-surface' : '') + '" data-panel-module="save-panel">',
+        '<div class="floating-head"><span>保存当前网页</span><small>' + (currentBookmarkSaved ? '已安全保存' : '点击插件即收藏') + '</small></div>',
+        '<div class="floating-body">',
+        '<div class="popup-status"><i data-lucide="circle-check"></i><span>已收藏到你的空间</span></div>',
+        formField("folder", "收藏夹", popupFolder + "  ›"),
+        '<button class="tag-editor ' + (activeElementKey === "tags" ? 'is-selected-element' : '') + '" type="button" data-element="tags"><span class="field-caption">已选标签</span><span class="tag-row">' + (popupTags.size ? Array.from(popupTags).map((tag) => '<span class="tag">' + tag + ' ×</span>').join("") : '<span class="tag">暂无</span>') + '</span></button>',
+        '<div class="popup-search"><i data-lucide="search"></i><span>搜索或新增标签...</span></div>',
+        '<div class="popup-tag-grid">' + tagOptions.map((tag) => '<button class="popup-tag-option ' + (popupTags.has(tag) ? 'is-on' : '') + '" type="button" data-popup-tag="' + tag + '"><i data-lucide="' + (popupTags.has(tag) ? 'check' : 'tag') + '"></i><span>' + tag + '</span></button>').join("") + '</div>',
+        '<div class="popup-footer"><button class="popup-link ' + (activeElementKey === "cancel" ? 'is-selected-element' : '') + '" type="button" data-element="cancel">取消收藏</button><button class="popup-done ' + (activeElementKey === "done" ? 'is-selected-element' : '') + '" type="button" data-element="done">完成</button></div>',
+        '</div></section>'
+      ].join("");
+    }
+
+    function formField(key, label, value) {
+      return '<button class="form-field ' + (activeElementKey === key ? 'is-selected-element' : '') + '" type="button" data-element="' + key + '"><span class="field-label">' + label + '</span><span class="field-value">' + value + '</span></button>';
+    }
+
+    function collectionMarkup(module) {
+      const items = [
+        { title: "短视频开头结构：3 秒抓住注意力", meta: "douyin.com/video/1001 · 未分类", tags: ["短视频"] },
+        { title: "账号内容定位案例合集", meta: "douyin.com/note/2048 · 设计参考", tags: ["灵感"] },
+        { title: "直播间商品讲解节奏参考", meta: "douyin.com/live/7788 · 未分类", tags: ["短视频"] }
+      ];
+      if (currentBookmarkSaved) items.unshift({ title: "抖音爆款选题拆解", meta: "douyin.com/video/new · " + popupFolder, tags: Array.from(popupTags) });
+      const facetCounts = new Map();
+      items.forEach((item) => item.tags.forEach((tag) => facetCounts.set(tag, (facetCounts.get(tag) || 0) + 1)));
+      return [
+        '<section class="floating-panel collection-panel ' + (module.key === "collection-panel" ? 'is-selected-surface' : '') + '" data-panel-module="collection-panel">',
+        '<div class="floating-head"><span>抖音 · douyin.com</span><small>' + items.length + ' 条保存内容</small></div>',
+        '<div class="floating-body collection-layout"><div class="saved-list">',
+        items.map((item, index) => '<div class="saved-item ' + (activeTag !== "all" && !item.tags.includes(activeTag) ? 'is-hidden' : '') + '" data-saved-item="' + index + '"><div class="saved-icon">抖</div><div class="saved-copy"><div class="saved-title">' + item.title + '</div><div class="saved-sub">' + item.meta + '</div></div>' + (item.tags.length ? '<span class="tag">' + item.tags[0] + '</span>' : '') + '<button class="item-more ' + (module.key === "context-menu" && index === 0 ? 'is-selected-element' : '') + '" type="button" data-open-menu="true" aria-label="网站项操作"><i data-lucide="ellipsis"></i></button></div>').join(""),
+        '</div><div class="facet-list">',
+        facet("all", "全部", items.length, module.key === "tag-filter" && activeTag === "all"),
+        Array.from(facetCounts.entries()).map(([tag, count]) => facet(tag, tag, count, module.key === "tag-filter" && activeTag === tag)).join(""),
+        '</div></div></section>'
+      ].join("");
+    }
+
+    function facet(key, label, count, selected) {
+      return '<button class="facet-button ' + (activeTag === key ? 'is-active' : '') + (selected ? ' is-selected-element' : '') + '" type="button" data-tag-filter="' + key + '"><span>' + label + '</span><span>' + count + '</span></button>';
+    }
+
+    function contextMenuMarkup() {
+      return '<div class="context-menu"><div class="context-item"><i data-lucide="external-link"></i>打开</div><div class="context-item"><i data-lucide="copy"></i>复制链接</div><div class="context-item"><i data-lucide="tags"></i>管理标签</div><div class="context-item"><i data-lucide="folder-input"></i>移动到收藏夹</div><div class="context-item danger"><i data-lucide="trash-2"></i>删除 Bookmark</div><div class="context-rule">域名由 URL 自动计算；一条 Bookmark 只有一个收藏夹，不能跨域移动。</div></div>';
+    }
+
+    function settingsMarkup() {
+      return '<section class="floating-panel settings-panel is-selected-surface"><div class="floating-head"><span>Dock 设置</span><small>当前单层结构</small></div><div class="floating-body"><div class="setting-row"><span>显示站点名称</span><span class="mini-control"><button class="mini-option active" type="button">开</button><button class="mini-option" type="button">关</button></span></div><div class="setting-row"><span>图标尺寸</span><span class="mini-control"><button class="mini-option" type="button">小</button><button class="mini-option active" type="button">中</button><button class="mini-option" type="button">大</button></span></div><div class="setting-row"><span>站点管理</span><span class="mini-control"><button class="mini-option" type="button">进入</button></span></div></div></section>';
+    }
+
+    function bindPrototypeEvents() {
+      prototypeFrame.querySelectorAll("[data-scene-module]").forEach((element) => element.addEventListener("click", (event) => {
+        event.stopPropagation();
+        let createdNow = false;
+        if (element.dataset.sceneModule === "save-panel" && !currentBookmarkSaved) {
+          currentBookmarkSaved = true;
+          savedCount += 1;
+          popupFolder = popupFolders[0];
+          popupTags.clear();
+          createdNow = true;
+        }
+        selectModule(element.dataset.sceneModule);
+        if (element.dataset.sceneModule === "save-panel") showPrototypeToast(createdNow ? "Bookmark 已创建，抖音 Dock 数量已更新" : "已恢复 Bookmark，Dock 数量不变");
+      }));
+      prototypeFrame.querySelectorAll("[data-site-index]").forEach((element) => element.addEventListener("click", (event) => {
+        event.stopPropagation();
+        selectModule("collection-panel");
+      }));
+      prototypeFrame.querySelectorAll("[data-element]").forEach((element) => element.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (element.dataset.element === "done") {
+          selectModule("browser-shell");
+          showPrototypeToast("Popup 已关闭，已确认操作不会丢失");
+          return;
+        }
+        if (element.dataset.element === "cancel") {
+          if (currentBookmarkSaved) savedCount = Math.max(0, savedCount - 1);
+          currentBookmarkSaved = false;
+          popupFolder = popupFolders[0];
+          popupTags.clear();
+          selectModule("domain-dock");
+          showPrototypeToast("Bookmark 已删除，抖音 Dock 数量已更新");
+          return;
+        }
+        if (element.dataset.element === "folder") {
+          popupFolder = popupFolders[(popupFolders.indexOf(popupFolder) + 1) % popupFolders.length];
+          activeModuleKey = "save-panel";
+          activeElementKey = "folder";
+          updateWorkbench();
+          showPrototypeToast("收藏夹已即时替换，Dock 数量不变");
+          return;
+        }
+        selectElement("save-panel", element.dataset.element);
+      }));
+      prototypeFrame.querySelectorAll("[data-popup-tag]").forEach((button) => button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const tag = button.dataset.popupTag;
+        if (popupTags.has(tag)) popupTags.delete(tag); else popupTags.add(tag);
+        activeModuleKey = "save-panel";
+        activeElementKey = "tags";
+        updateWorkbench();
+        showPrototypeToast("标签已即时保存，Dock 数量不变");
+      }));
+      prototypeFrame.querySelectorAll("[data-tag-filter]").forEach((button) => button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        activeModuleKey = "tag-filter";
+        activeElementKey = null;
+        activeTag = button.dataset.tagFilter;
+        updateWorkbench();
+      }));
+      prototypeFrame.querySelectorAll("[data-open-menu]").forEach((button) => button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        selectModule("context-menu");
+      }));
+    }
+
+    function showPrototypeToast(message) {
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.textContent = message;
+      prototypeFrame.appendChild(toast);
+      setTimeout(() => toast.remove(), 1800);
+    }
+
+    function renderInspector() {
+      const module = currentModule();
+      const element = currentElement();
+      if (element) {
+        inspectorContent.innerHTML = [
+          '<div class="inspector-summary"><div class="status-line"><span class="status-label">界面元素</span><span class="section-count">' + module.id + ' ' + module.title + '</span></div><p class="summary-goal">' + element.rule + '</p></div>',
+          '<section class="inspector-section"><div class="section-heading"><h2>元素属性</h2></div><dl class="property-grid"><dt>控件类型</dt><dd>' + element.type + '</dd><dt>是否必需</dt><dd>' + element.required + '</dd><dt>数据来源</dt><dd>' + element.source + '</dd></dl></section>',
+          '<section class="inspector-section"><div class="section-heading"><h2>交互规则</h2></div><ul class="requirement-list"><li>' + element.interaction + '</li></ul></section>',
+          '<section class="inspector-section"><div class="section-heading"><h2>待讨论</h2><span class="section-count">' + element.questions.length + '</span></div><ul class="question-list">' + element.questions.map((item) => '<li>' + item + '</li>').join("") + '</ul></section>',
+          noteDetails(module)
+        ].join("");
+      } else {
+        inspectorContent.innerHTML = [
+          '<div class="inspector-summary"><div class="status-line"><span class="status-label ' + module.status + '">' + module.statusLabel + '</span><span class="section-count">' + currentGroup().title + '</span></div><p class="summary-goal">' + module.goal + '</p></div>',
+          '<section class="inspector-section"><div class="section-heading"><h2>来源与范围</h2></div><dl class="property-grid"><dt>范围层级</dt><dd>' + (["M01","M02","M03","M04","M05","M06","M07"].includes(module.id) ? '首版核心链路' : (module.id === 'M08' ? '基础环境已冻结' : '已冻结支撑模块')) + '</dd><dt>来源索引</dt><dd>requirements/source-map.md</dd><dt>Figma 证据</dt><dd>' + figmaEvidence(module) + '</dd></dl></section>',
+          sectionList("已确定", module.confirmed, "requirement-list"),
+          contentSection(module),
+          sectionList("关键交互", module.interactions, "requirement-list"),
+          sectionList("状态", module.states, "requirement-list"),
+          sectionList("待讨论", module.questions, "question-list"),
+          detailsList("当前不做", module.notDo),
+          changesDetails(module),
+          noteDetails(module)
+        ].join("");
+      }
+      bindInspectorNotes(module);
+    }
+
+    function figmaEvidence(module) {
+      if (!module.figma?.length) return '<span>暂无已验证专用节点</span>';
+      const base = 'https://www.figma.com/design/5ies7QmEhABMFUwK1khOua/Duck-Newtab-Desktop?m=dev&node-id=';
+      return '<span class="figma-links">' + module.figma.map((item) => '<a href="' + base + item[1] + '" target="_blank" rel="noreferrer">' + item[0] + '</a>').join('') + '</span>';
+    }
+
+    function sectionList(title, items, className) {
+      return '<section class="inspector-section"><div class="section-heading"><h2>' + title + '</h2><span class="section-count">' + items.length + '</span></div><ul class="' + className + '">' + items.map((item) => '<li>' + item + '</li>').join("") + '</ul></section>';
+    }
+
+    function contentSection(module) {
+      return '<section class="inspector-section"><div class="section-heading"><h2>界面内容</h2><span class="section-count">' + module.content.length + '</span></div><table class="content-table"><thead><tr><th>内容</th><th>说明</th><th>必需</th></tr></thead><tbody>' + module.content.map((row) => '<tr><td>' + row[0] + '</td><td>' + row[1] + '</td><td>' + (row[2] ? '<span class="required-mark">是</span>' : '否') + '</td></tr>').join("") + '</tbody></table></section>';
+    }
+
+    function detailsList(title, items) {
+      return '<details class="inspector-details"><summary>' + title + '<span>' + items.length + '</span></summary><div class="details-body"><ul class="requirement-list">' + items.map((item) => '<li>' + item + '</li>').join("") + '</ul></div></details>';
+    }
+
+    function changesDetails(module) {
+      return '<details class="inspector-details"><summary>变更记录<span>' + module.changes.length + '</span></summary><div class="details-body">' + module.changes.map((change) => '<div class="change-row"><span class="change-date">' + change[0] + '</span><span>' + change[1] + '</span></div>').join("") + '</div></details>';
+    }
+
+    function noteDetails(module) {
+      return '<details class="inspector-details"><summary>讨论记录<span>本地</span></summary><div class="details-body"><textarea class="note-area" id="module-note" placeholder="记录补充、备选方案、反例或需要 Codex 整理的内容。"></textarea><p class="note-hint">仅保存在当前浏览器，不替代 Markdown 正式需求。</p></div></details>';
+    }
+
+    function bindInspectorNotes(module) {
+      const note = document.getElementById("module-note");
+      if (!note) return;
+      const key = "zero-workbench-v4-note-" + module.key;
+      note.value = localStorage.getItem(key) || "";
+      note.addEventListener("input", () => localStorage.setItem(key, note.value));
+    }
+
+    function updateFrameSize() {
+      prototypeFrame.style.width = frameWidth + "px";
+      prototypeFrame.style.height = Math.round(frameWidth * 1080 / 1912) + "px";
+    }
+
+    function updateZoom() {
+      scale = Math.max(0.35, Math.min(1.4, scale));
+      scaleWrap.style.width = Math.round(prototypeFrame.offsetWidth * scale) + "px";
+      scaleWrap.style.height = Math.round(prototypeFrame.offsetHeight * scale) + "px";
+      prototypeFrame.style.transform = "scale(" + scale + ")";
+      document.getElementById("zoom-value").textContent = Math.round(scale * 100) + "%";
+    }
+
+    function fitCurrentFrame() {
+      const availableW = Math.max(340, canvasScroll.clientWidth - 58);
+      const availableH = Math.max(250, canvasScroll.clientHeight - 58);
+      scale = Math.min(1, availableW / prototypeFrame.offsetWidth, availableH / prototypeFrame.offsetHeight);
+      updateZoom();
+    }
+
+    function fitCanvas() {
+      updateFrameSize();
+      fitMode = true;
+      viewportSelect.value = "fit";
+      fitCurrentFrame();
+    }
+
+    function setViewport(value) {
+      if (value === "fit") {
+        fitCanvas();
+        return;
+      }
+      frameWidth = Number(value);
+      updateFrameSize();
+      fitMode = false;
+      scale = Math.min(1, (canvasScroll.clientWidth - 58) / prototypeFrame.offsetWidth, (canvasScroll.clientHeight - 58) / prototypeFrame.offsetHeight);
+      updateZoom();
+    }
+
+    function initResizer(element, side) {
+      let dragging = false;
+      let activePointerId = null;
+      const property = side === "left" ? "--left-w" : "--right-w";
+      const min = side === "left" ? 218 : 286;
+      const max = side === "left" ? 420 : 520;
+      const currentWidth = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(property));
+      const applyWidth = (width) => {
+        const next = Math.max(min, Math.min(max, width));
+        document.documentElement.style.setProperty(property, next + "px");
+        element.setAttribute("aria-valuenow", String(Math.round(next)));
+        element.setAttribute("aria-valuetext", Math.round(next) + " 像素");
+        return next;
+      };
+      const finishDrag = (event) => {
+        if (!dragging) return;
+        if (event?.pointerId != null && activePointerId != null && event.pointerId !== activePointerId) return;
+        dragging = false;
+        activePointerId = null;
+        element.classList.remove("is-dragging");
+        document.body.style.userSelect = "";
+        if (fitMode) fitCanvas(); else fitCurrentFrame();
+      };
+      applyWidth(currentWidth());
+      element.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        dragging = true;
+        activePointerId = event.pointerId;
+        element.classList.add("is-dragging");
+        document.body.style.userSelect = "none";
+      });
+      window.addEventListener("pointerup", finishDrag);
+      window.addEventListener("pointercancel", finishDrag);
+      window.addEventListener("pointermove", (event) => {
+        if (!dragging || event.pointerId !== activePointerId) return;
+        applyWidth(side === "left" ? event.clientX : window.innerWidth - event.clientX);
+      });
+      element.addEventListener("keydown", (event) => {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        event.preventDefault();
+        const direction = event.key === "ArrowRight" ? 1 : -1;
+        applyWidth(currentWidth() + direction * (side === "left" ? 12 : -12));
+        if (fitMode) fitCanvas(); else fitCurrentFrame();
+      });
+      return () => applyWidth(currentWidth());
+    }
+
+    function setPane(side, visible) {
+      if (visible && window.innerWidth <= 900) {
+        const other = side === "left" ? "right" : "left";
+        document.body.classList.add(other + "-hidden");
+      }
+      document.body.classList.toggle(side + "-hidden", !visible);
+      syncPaneControls();
+      requestAnimationFrame(() => { if (fitMode) fitCanvas(); else fitCurrentFrame(); });
+    }
+
+    function syncPaneControls() {
+      ["left", "right"].forEach((side) => {
+        const visible = !document.body.classList.contains(side + "-hidden");
+        document.getElementById("toggle-" + side).setAttribute("aria-pressed", String(visible));
+        document.getElementById(side + "-pane").setAttribute("aria-hidden", String(!visible));
+      });
+      document.getElementById("focus-canvas").setAttribute("aria-pressed", String(document.body.classList.contains("left-hidden") && document.body.classList.contains("right-hidden")));
+    }
+
+    function currentResponsiveMode() {
+      if (window.innerWidth <= 900) return "narrow";
+      if (window.innerWidth <= 1180) return "compact";
+      return "wide";
+    }
+
+    function applyResponsiveDefaults() {
+      const nextMode = currentResponsiveMode();
+      if (nextMode === responsiveMode) return;
+      responsiveMode = nextMode;
+      if (nextMode === "wide") {
+        document.body.classList.remove("left-hidden", "right-hidden");
+      } else if (nextMode === "compact") {
+        document.body.classList.remove("left-hidden");
+        document.body.classList.add("right-hidden");
+      } else {
+        document.body.classList.add("left-hidden", "right-hidden");
+      }
+      syncPaneControls();
+    }
+
+    featureSearch.addEventListener("input", renderFeatureTree);
+    document.getElementById("collapse-groups").addEventListener("click", () => {
+      if (expandedGroups.size) expandedGroups.clear(); else expandedGroups = new Set(groups.map((group) => group.id));
+      renderFeatureTree();
+    });
+    viewportSelect.addEventListener("change", () => setViewport(viewportSelect.value));
+    popupStateSelect.addEventListener("change", () => {
+      activeModuleKey = "save-panel";
+      activeElementKey = null;
+      activePopupState = popupStateSelect.value;
+      updateWorkbench();
+    });
+    document.getElementById("zoom-in").addEventListener("click", () => { fitMode = false; scale += 0.1; updateZoom(); });
+    document.getElementById("zoom-out").addEventListener("click", () => { fitMode = false; scale -= 0.1; updateZoom(); });
+    document.getElementById("zoom-value").addEventListener("click", () => { fitMode = false; scale = 1; updateZoom(); });
+    document.getElementById("zoom-fit").addEventListener("click", fitCanvas);
+    document.getElementById("toggle-left").addEventListener("click", () => setPane("left", document.body.classList.contains("left-hidden")));
+    document.getElementById("toggle-right").addEventListener("click", () => setPane("right", document.body.classList.contains("right-hidden")));
+    document.getElementById("close-right").addEventListener("click", () => setPane("right", false));
+    document.addEventListener("pointerdown", (event) => {
+      if (window.innerWidth > 900) return;
+      ["left", "right"].forEach((side) => {
+        if (document.body.classList.contains(side + "-hidden")) return;
+        const pane = document.getElementById(side + "-pane");
+        const toggle = document.getElementById("toggle-" + side);
+        if (!pane.contains(event.target) && !toggle.contains(event.target)) setPane(side, false);
+      });
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || window.innerWidth > 900) return;
+      const side = !document.body.classList.contains("right-hidden") ? "right" : !document.body.classList.contains("left-hidden") ? "left" : null;
+      if (!side) return;
+      event.preventDefault();
+      setPane(side, false);
+      document.getElementById("toggle-" + side).focus({ preventScroll: true });
+    });
+    document.getElementById("focus-canvas").addEventListener("click", (event) => {
+      const focus = event.currentTarget.getAttribute("aria-pressed") !== "true";
+      event.currentTarget.setAttribute("aria-pressed", String(focus));
+      setPane("left", !focus);
+      setPane("right", !focus);
+    });
+
+    const syncLeftResizer = initResizer(document.getElementById("left-resizer"), "left");
+    const syncRightResizer = initResizer(document.getElementById("right-resizer"), "right");
+    window.addEventListener("resize", () => {
+      applyResponsiveDefaults();
+      syncLeftResizer();
+      syncRightResizer();
+      hideTooltip();
+      if (fitMode) fitCanvas(); else fitCurrentFrame();
+    });
+    window.addEventListener("message", (event) => {
+      if (event.origin !== location.origin || event.data?.type !== "zero-prototype-select") return;
+      const iframe = document.getElementById("live-prototype-frame");
+      if (!iframe || event.source !== iframe.contentWindow) return;
+      if (!modules.some((module) => module.key === event.data.module)) return;
+      activeModuleKey = event.data.module;
+      activeElementKey = event.data.element || null;
+      if (activeModuleKey !== "tag-filter") activeTag = "all";
+      updateWorkbench({ skipPrototype: true });
+    });
+
+    updateFrameSize();
+    applyResponsiveDefaults();
+    updateWorkbench();
+    refreshIcons();
+    requestAnimationFrame(fitCanvas);
+  </script>
+</body>
+</html>

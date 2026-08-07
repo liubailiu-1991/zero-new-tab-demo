@@ -1,0 +1,1859 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ZERO 新标签页 - 真实组件原型</title>
+  <link rel="icon" href="assets/figma/tabbar/ai-assistant.svg">
+  <style>
+    :root {
+      --chrome-h: 40px;
+      --folder-h: 32px;
+      --dock-default-h: 88px;
+      --dock-site-slot: 80px;
+      --dock-site-icon: 56px;
+      --dock-site-radius: 10px;
+      --dock-site-gap: 16px;
+      --dock-expand-w: 72px;
+      --folder-chip-h: 28px;
+      --folder-chip-icon: 16px;
+      --folder-chip-font: 13px;
+      --folder-tool-icon: 16px;
+      --text: rgba(0, 0, 0, 0.9);
+      --muted: rgba(0, 0, 0, 0.6);
+      --placeholder: rgba(0, 0, 0, 0.4);
+      --line: rgba(0, 0, 0, 0.15);
+      --blue: #0052d9;
+      --blue-soft: rgba(0, 82, 217, 0.1);
+      --surface: rgba(255, 255, 255, 0.96);
+      --shadow: 0 18px 44px rgba(0, 0, 0, 0.2);
+      --focus: #2d74da;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      color: var(--text);
+      background: #7db8d6;
+      font-family: "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+    img { display: block; }
+
+    .scene {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-width: 760px;
+      min-height: 560px;
+      overflow: hidden;
+      isolation: isolate;
+      background: #7db8d6;
+    }
+
+    .wallpaper {
+      position: absolute;
+      inset: 0;
+      border: 0;
+      padding: 0;
+      background: url("assets/latest-cloud-field-wallpaper.jpg") center center / cover no-repeat;
+      cursor: default;
+    }
+
+    .wallpaper-shade {
+      position: absolute;
+      z-index: 2;
+      inset: var(--chrome-h) 0 var(--folder-h);
+      background: rgba(0, 0, 0, 0);
+      pointer-events: none;
+      transition: background 200ms ease;
+    }
+
+    .scene.is-expanded .wallpaper-shade { background: rgba(0, 0, 0, 0.5); }
+
+    .browser-chrome {
+      position: absolute;
+      z-index: 30;
+      inset: 0 0 auto;
+      height: var(--chrome-h);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 0 0 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      background: linear-gradient(90deg, rgba(193, 228, 250, 0.74), rgba(169, 216, 244, 0.72) 55%, rgba(194, 230, 251, 0.74));
+      backdrop-filter: blur(7.5px);
+      box-shadow: inset 0 -1px 0 rgba(64, 124, 163, 0.08);
+      overflow: hidden;
+      color: rgba(0, 0, 0, 0.9);
+      font-size: 12px;
+      line-height: 20px;
+    }
+
+    .chrome-nav,
+    .tab-area,
+    .tab-list,
+    .tab-surface,
+    .tab-leading,
+    .tab-trailing,
+    .tab-addons,
+    .browser-tools,
+    .toolbar-actions,
+    .window-actions {
+      display: flex;
+      align-items: center;
+    }
+
+    .chrome-nav {
+      width: 110px;
+      height: 34px;
+      flex: 0 0 110px;
+      gap: 4px;
+      align-self: flex-start;
+      margin-top: 3px;
+    }
+
+    .chrome-icon {
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      border: 0;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      color: rgba(0, 0, 0, 0.9);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .chrome-icon:hover,
+    .chrome-icon:focus-visible,
+    .tab-compact:hover,
+    .tab-compact:focus-visible,
+    .toolbar-button:hover,
+    .toolbar-button:focus-visible {
+      outline: 0;
+      background: rgba(255, 255, 255, 0.28);
+    }
+
+    .chrome-icon svg,
+    .tab-compact svg,
+    .toolbar-button svg,
+    .window-button svg {
+      width: 16px;
+      height: 16px;
+      stroke-width: 1.75;
+    }
+
+    .tab-area {
+      min-width: 0;
+      height: 40px;
+      flex: 1 1 auto;
+      align-self: flex-start;
+      overflow: hidden;
+    }
+
+    .tab-list {
+      min-width: 0;
+      height: 40px;
+      flex: 1 1 auto;
+      overflow: hidden;
+    }
+
+    .tab {
+      min-width: 0;
+      height: 40px;
+      flex: 1 1 0;
+      border: 0;
+      padding: 4px;
+      color: rgba(0, 0, 0, 0.72);
+      background: transparent;
+      cursor: default;
+      white-space: nowrap;
+    }
+
+    .tab.active {
+      flex: 0 1 368px;
+      color: rgba(0, 0, 0, 0.9);
+    }
+
+    .tab-surface {
+      position: relative;
+      width: 100%;
+      height: 32px;
+      min-width: 0;
+      gap: 8px;
+      padding: 0 10px;
+      border-radius: 8px;
+    }
+
+    .tab:not(.active) .tab-surface::after {
+      content: "";
+      position: absolute;
+      top: 6px;
+      right: -4px;
+      width: 1px;
+      height: 20px;
+      background: rgba(62, 116, 151, 0.09);
+    }
+
+    .tab:hover .tab-surface { background: rgba(255, 255, 255, 0.14); }
+
+    .tab.active .tab-surface {
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(29, 77, 108, 0.05);
+    }
+
+    .tab-leading {
+      min-width: 0;
+      flex: 1 1 auto;
+      gap: 8px;
+    }
+
+    .tab-trailing {
+      flex: 0 0 auto;
+      gap: 2px;
+    }
+
+    .tab-label {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: left;
+    }
+
+    .site-favicon {
+      position: relative;
+      width: 16px;
+      height: 16px;
+      flex: 0 0 16px;
+    }
+
+    .site-favicon img { position: absolute; }
+    .site-favicon .favicon-arc { top: 0; left: 0.96px; width: 14.08px; height: auto; }
+    .site-favicon .favicon-smile { right: 1.387px; bottom: 0; width: 13.227px; height: auto; }
+    .site-favicon .favicon-dot { top: 6.507px; left: 6.507px; width: 2.987px; height: 2.987px; }
+
+    .tab-action {
+      width: 28px;
+      height: 28px;
+      flex: 0 0 28px;
+      border: 0;
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      color: rgba(0, 0, 0, 0.8);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .tab-action:hover { background: rgba(0, 0, 0, 0.06); }
+    .tab-action svg { width: 14px; height: 14px; stroke-width: 1.8; }
+
+    .tab-addons {
+      width: 60px;
+      height: 40px;
+      flex: 0 0 60px;
+      gap: 4px;
+      margin-left: 4px;
+    }
+
+    .tab-compact {
+      width: 28px;
+      height: 28px;
+      flex: 0 0 28px;
+      border: 0;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      color: rgba(0, 0, 0, 0.9);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .tab-compact.custom-icon img { width: 14px; height: auto; }
+
+    .tab-reserved {
+      width: 48px;
+      height: 40px;
+      flex: 0 0 48px;
+    }
+
+    .browser-tools {
+      width: 308px;
+      height: 40px;
+      flex: 0 0 308px;
+      align-self: flex-start;
+    }
+
+    .toolbar-actions {
+      width: 174px;
+      height: 34px;
+      flex: 0 0 174px;
+      gap: 4px;
+    }
+
+    .toolbar-button {
+      height: 34px;
+      flex: 0 0 auto;
+      border: 0;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 0;
+      color: rgba(0, 0, 0, 0.9);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .toolbar-button.extension,
+    .toolbar-button.plugin-entry { width: 34px; }
+    .toolbar-button.history { width: 46px; }
+    .toolbar-button.profile { width: 48px; }
+    .toolbar-button.history svg:first-child { width: 15px; height: 15px; }
+    .toolbar-button .chevron { width: 10px; height: 10px; stroke-width: 2; }
+
+    .plugin-entry img { width: 16px; height: 15px; }
+    .plugin-entry.is-active { background: rgba(255, 255, 255, 0.4); }
+
+    .profile-badge {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: #ef4f52;
+      font-size: 10px;
+      line-height: 20px;
+    }
+
+    .window-actions {
+      width: 134px;
+      height: 39px;
+      flex: 0 0 134px;
+      gap: 1px;
+    }
+
+    .window-button {
+      width: 44px;
+      height: 39px;
+      flex: 0 0 44px;
+      border: 0;
+      border-radius: 0;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      color: rgba(0, 0, 0, 0.9);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .window-button:hover { background: rgba(255, 255, 255, 0.24); }
+    .window-button.close:hover { color: #fff; background: #d94747; }
+
+    .search-shell {
+      position: absolute;
+      z-index: 12;
+      top: calc(var(--chrome-h) + 20px);
+      left: 50%;
+      width: min(640px, calc(100vw - 48px));
+      min-width: 0;
+      height: 48px;
+      transform: translateX(-50%);
+      display: grid;
+      grid-template-columns: 16px minmax(0, 1fr) repeat(4, 32px);
+      align-items: center;
+      gap: 8px;
+      padding: 0 8px 0 16px;
+      border: 0;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(22px);
+      box-shadow: 0 5px 18px rgba(33, 71, 97, 0.09);
+    }
+
+    .search-shell > svg {
+      width: 16px;
+      height: 16px;
+      stroke-width: 1.75;
+    }
+
+    .search-input {
+      min-width: 0;
+      height: 100%;
+      border: 0;
+      outline: 0;
+      padding: 0;
+      background: transparent;
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 24px;
+    }
+    .search-input::placeholder { color: var(--muted); opacity: 1; }
+
+    .search-action {
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 20px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    .search-action:hover { background: rgba(0, 0, 0, 0.06); }
+    .search-action svg { width: 16px; height: 16px; stroke-width: 1.75; }
+    .search-action.submit { color: #fff; background: rgba(0, 0, 0, 0.26); }
+    .search-action.submit:hover { background: rgba(0, 0, 0, 0.42); }
+
+    .search-menu {
+      position: absolute;
+      z-index: 20;
+      top: calc(var(--chrome-h) + 76px);
+      left: 50%;
+      width: min(640px, calc(100vw - 48px));
+      min-width: 0;
+      transform: translateX(-50%) translateY(-5px);
+      border: 1px solid rgba(0,0,0,.1);
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(255,255,255,.97);
+      box-shadow: 0 16px 36px rgba(0,0,0,.16);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 140ms ease, transform 140ms ease;
+    }
+    .search-menu.is-open { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+    .search-option {
+      width: 100%;
+      min-height: 42px;
+      border: 0;
+      border-bottom: 1px solid rgba(0,0,0,.07);
+      display: grid;
+      grid-template-columns: 24px minmax(0,1fr) auto;
+      align-items: center;
+      gap: 9px;
+      padding: 0 12px;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      font-size: 13px;
+    }
+    .search-option:last-child { border-bottom: 0; }
+    .search-option:hover { background: #f4f6f8; }
+    .search-option svg { width: 16px; height: 16px; }
+    .candidate-mark { color: #8a929c; font-size: 11px; }
+
+    .default-dock {
+      position: absolute;
+      z-index: 10;
+      left: 0;
+      right: 0;
+      bottom: var(--folder-h);
+      height: var(--dock-default-h);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) var(--dock-expand-w);
+      align-items: end;
+      gap: 0;
+      padding: 8px 0 var(--dock-site-gap);
+      background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.82) 0,
+        rgba(0, 0, 0, 0.68) 22%,
+        rgba(0, 0, 0, 0.3) 58%,
+        rgba(0, 0, 0, 0) 100%
+      );
+      transition: opacity 160ms ease, transform 180ms ease;
+    }
+
+    .scene.is-expanded .default-dock { opacity: 0; transform: translateY(14px); pointer-events: none; }
+    .dock-row {
+      min-width: 0;
+      height: 100%;
+      display: flex;
+      align-items: end;
+      gap: 0;
+      overflow: hidden;
+    }
+
+    .dock-site {
+      position: relative;
+      width: var(--dock-site-slot);
+      min-width: var(--dock-site-slot);
+      flex: 0 0 var(--dock-site-slot);
+      height: 100%;
+      border: 0;
+      border-radius: 8px;
+      display: grid;
+      place-items: end center;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    .dock-site[hidden] { display: none; }
+    .dock-site:hover { background: rgba(255,255,255,.08); }
+    .dock-site img {
+      width: var(--dock-site-icon);
+      max-width: none;
+      height: var(--dock-site-icon);
+      aspect-ratio: 1;
+      border-radius: var(--dock-site-radius);
+      object-fit: contain;
+      transition: transform 150ms ease;
+      filter: drop-shadow(0 5px 10px rgba(0,0,0,.18));
+    }
+    .dock-site:hover img { transform: translateY(-6px) scale(1.04); }
+
+    .expand-button, .more-button {
+      border: 0;
+      display: grid;
+      justify-items: center;
+      align-content: center;
+      gap: 7px;
+      padding: 0;
+      color: rgba(255,255,255,.92);
+      background: transparent;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .expand-button { width: 100%; height: 100%; align-content: end; }
+    .expand-button .grid-symbol, .more-button .grid-symbol {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: grid;
+      place-content: center;
+      background: #ff7900;
+      box-shadow: 0 4px 12px rgba(199, 82, 0, .28);
+    }
+    .grid-symbol svg { width: 24px; height: 24px; stroke-width: 1.7; }
+
+    .expanded-dock {
+      position: absolute;
+      z-index: 9;
+      left: 12px;
+      right: 12px;
+      bottom: calc(var(--folder-h) + 8px);
+      height: min(320px, calc(100vh - 152px));
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 72px;
+      gap: 8px;
+      align-items: end;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(16px);
+      transition: opacity 180ms ease, transform 200ms ease, visibility 180ms;
+    }
+    .scene.is-expanded .expanded-dock { opacity: 1; visibility: visible; transform: translateY(0); }
+
+    .expanded-grid {
+      min-width: 0;
+      height: 100%;
+      display: grid;
+      grid-template-columns: repeat(17, minmax(50px, 88px));
+      grid-template-rows: repeat(3, minmax(78px, 96px));
+      align-content: end;
+      justify-content: space-between;
+      gap: 2px clamp(2px, .3vw, 8px);
+    }
+
+    .expanded-site {
+      min-width: 0;
+      border: 0;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 4px;
+      color: rgba(255,255,255,.9);
+      background: transparent;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .expanded-site:hover { background: rgba(255,255,255,.08); }
+    .expanded-site img { width: clamp(42px, 3vw, 56px); height: clamp(42px, 3vw, 56px); object-fit: contain; }
+    .expanded-site span { width: 100%; overflow: hidden; text-overflow: ellipsis; text-align: center; white-space: nowrap; }
+
+    .collapse-button {
+      position: absolute;
+      z-index: 15;
+      right: 14px;
+      bottom: calc(var(--folder-h) + 334px);
+      width: 38px;
+      height: 28px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 5px;
+      display: none;
+      place-items: center;
+      color: #fff;
+      background: rgba(0,0,0,.28);
+      cursor: pointer;
+    }
+    .scene.is-expanded .collapse-button { display: grid; }
+    .collapse-button svg { width: 16px; height: 16px; }
+
+    .folder-header {
+      position: absolute;
+      z-index: 18;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: var(--folder-h);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 24px;
+      padding: 0 8px;
+      background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(50px);
+    }
+    .folder-list { min-width: 0; display: flex; align-items: center; gap: 8px; overflow: hidden; }
+    .folder-chip {
+      height: 28px;
+      flex: 0 0 auto;
+      border: 0;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 5px;
+      color: rgba(255,255,255,.9);
+      background: var(--chip, rgba(60,77,128,.5));
+      cursor: pointer;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .folder-chip:hover { filter: brightness(1.18); }
+    .folder-chip.is-active { box-shadow: inset 0 0 0 1px rgba(255,255,255,.48), 0 0 0 1px rgba(0,0,0,.18); }
+    .folder-chip svg { width: 16px; height: 16px; flex: 0 0 16px; stroke-width: 1.75; opacity: .92; }
+
+    .folder-collection-panel {
+      position: absolute;
+      z-index: 62;
+      left: 8px;
+      bottom: calc(var(--folder-h) + 8px);
+      width: min(598px, calc(100vw - 16px));
+      height: min(615px, calc(100vh - var(--chrome-h) - var(--folder-h) - 16px));
+      min-height: 360px;
+      display: grid;
+      grid-template-columns: 48px 138px minmax(0, 364px);
+      gap: 12px;
+      padding: 16px 12px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 16px;
+      background: rgba(0,0,0,.06);
+      box-shadow: 0 18px 48px rgba(0,0,0,.2);
+      backdrop-filter: blur(52px);
+      -webkit-backdrop-filter: blur(52px);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(8px) scale(.99);
+      transition: opacity 150ms ease, transform 150ms ease, visibility 150ms;
+    }
+    .folder-collection-panel.is-open { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+
+    .folder-site-rail {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      overflow: auto;
+      scrollbar-width: none;
+    }
+    .folder-site-rail::-webkit-scrollbar { display: none; }
+    .folder-site-filter {
+      width: 40px;
+      height: 40px;
+      flex: 0 0 40px;
+      border: 0;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    .folder-site-filter:hover, .folder-site-filter.is-active { background: rgba(255,255,255,.2); }
+    .folder-site-filter img { width: 32px; height: 32px; border-radius: 8px; object-fit: contain; }
+
+    .folder-navigation {
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: auto;
+      scrollbar-width: none;
+    }
+    .folder-navigation::-webkit-scrollbar { display: none; }
+    .folder-navigation-button {
+      width: 100%;
+      min-height: 22px;
+      flex: 0 0 auto;
+      border: 0;
+      border-radius: 4px;
+      display: grid;
+      grid-template-columns: 16px minmax(0,1fr);
+      align-items: center;
+      gap: 6px;
+      padding: 0 4px;
+      color: rgba(255,255,255,.94);
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      font-family: "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+      line-height: 22px;
+    }
+    .folder-navigation-button:hover, .folder-navigation-button.is-active { background: rgba(255,255,255,.18); }
+    .folder-navigation-button svg { width: 16px; height: 16px; stroke-width: 1.75; }
+    .folder-navigation-button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .folder-content-surface {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 28px minmax(0,1fr);
+      gap: 8px;
+      padding: 12px;
+      border-radius: 12px;
+      color: #202124;
+      background: rgba(255,255,255,.96);
+      overflow: hidden;
+    }
+    .folder-content-head { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .folder-sort { min-width: 0; display: flex; align-items: center; gap: 4px; overflow: hidden; }
+    .folder-sort-button {
+      height: 28px;
+      flex: 0 0 auto;
+      border: 0;
+      border-radius: 4px;
+      padding: 0 8px;
+      color: rgba(32,33,36,.66);
+      background: rgba(32,33,36,.06);
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 20px;
+    }
+    .folder-sort-button:hover, .folder-sort-button.is-active { color: #202124; background: rgba(32,33,36,.12); }
+    .folder-panel-close { width: 28px; height: 28px; flex: 0 0 28px; border: 0; border-radius: 4px; display: grid; place-items: center; padding: 0; background: transparent; cursor: pointer; }
+    .folder-panel-close:hover { background: rgba(32,33,36,.08); }
+    .folder-panel-close svg { width: 16px; height: 16px; }
+    .folder-bookmark-list { min-height: 0; overflow: auto; }
+    .folder-bookmark-row {
+      width: 100%;
+      height: 28px;
+      border: 0;
+      border-radius: 4px;
+      display: grid;
+      grid-template-columns: 16px minmax(0,1fr);
+      align-items: center;
+      gap: 8px;
+      padding: 0 4px;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      font-size: 12px;
+      line-height: 20px;
+    }
+    .folder-bookmark-row:hover { background: rgba(32,33,36,.06); }
+    .folder-bookmark-row img { width: 16px; height: 16px; border-radius: 4px; object-fit: contain; }
+    .folder-bookmark-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .tool-zone { height: 100%; display: flex; align-items: center; justify-content: flex-end; }
+    .tool-button {
+      width: 40px;
+      height: 28px;
+      border: 0;
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      color: rgba(255,255,255,.9);
+      background: transparent;
+      cursor: pointer;
+    }
+    .tool-button:hover, .tool-button.is-active { background: rgba(255,255,255,.12); }
+    .tool-button svg { width: 16px; height: 16px; stroke-width: 1.75; opacity: .9; }
+
+    .panel {
+      position: absolute;
+      z-index: 60;
+      border: 1px solid rgba(0,0,0,.12);
+      background: #fff;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-5px) scale(.985);
+      transition: opacity 150ms ease, transform 150ms ease, visibility 150ms;
+    }
+    .panel.is-open { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+
+    .extension-panel {
+      top: calc(var(--chrome-h) + 6px);
+      right: 112px;
+      width: 400px;
+      max-height: calc(100vh - var(--chrome-h) - 18px);
+      border-color: rgba(0, 0, 0, 0.18);
+      border-radius: 4px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+    }
+
+    .popup-main, .folder-picker { display: none; }
+    .extension-panel:not(.is-folder-mode) .popup-main {
+      max-height: calc(100vh - var(--chrome-h) - 18px);
+      display: grid;
+      grid-template-rows: 96px minmax(0, 1fr) 48px;
+      overflow: hidden;
+    }
+    .extension-panel.is-folder-mode .folder-picker { display: grid; }
+
+    .popup-head {
+      height: 96px;
+      display: grid;
+      grid-template-columns: 32px minmax(0, 1fr);
+      align-items: start;
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid rgba(0,0,0,.06);
+      background: #fff;
+      box-shadow: 0 4px 10px rgba(0,0,0,.07);
+    }
+    .popup-site-icon { width: 32px; height: 32px; border-radius: 4px; object-fit: cover; }
+    .popup-title { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+    .popup-title strong { overflow: hidden; text-overflow: ellipsis; font-size: 20px; line-height: 32px; font-weight: 400; white-space: nowrap; }
+    .popup-title small { display: none; }
+    .folder-entry {
+      width: max-content;
+      max-width: 100%;
+      min-height: 28px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 6px;
+      background: rgba(255,255,255,.06);
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .folder-entry img { flex: 0 0 auto; object-fit: contain; }
+    .folder-entry-icon { width: 14.667px; height: 12.333px; }
+    .folder-entry-chevron { width: 5.552px; height: 9.219px; }
+    .folder-entry svg { width: 16px; height: 16px; }
+
+    .icon-button {
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    .icon-button:hover { background: rgba(0,0,0,.06); }
+    .icon-button svg { width: 15px; height: 15px; }
+
+    .popup-body {
+      min-height: 0;
+      padding: 16px;
+      overflow: auto;
+      background: linear-gradient(180deg, #f5f5f5 0%, #ededed 100%);
+    }
+    .tag-composer { min-width: 0; }
+    .tag-input-card {
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,.06);
+      border-radius: 4px;
+      background: #fff;
+      box-shadow: 0 0 3px rgba(0,0,0,.08);
+    }
+    .tag-composer.is-searching {
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,.08);
+      border-radius: 4px;
+      background: #fff;
+      box-shadow: 0 0 3px rgba(0,0,0,.08);
+    }
+    .tag-composer.is-searching .tag-input-card {
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    .selected-area { display: none; padding: 8px 10px 0; }
+    .selected-area.has-tags { display: block; }
+    .selected-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag-pill {
+      min-height: 24px;
+      border: 1px solid rgba(0,82,217,.18);
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 7px;
+      color: #0757cb;
+      background: rgba(0,82,217,.09);
+      font-size: 12px;
+    }
+    .tag-pill > svg { width: 14px; height: 14px; flex: 0 0 14px; stroke-width: 1.8; }
+    .tag-pill button { border: 0; padding: 0; color: inherit; background: transparent; cursor: pointer; }
+
+    .tag-search-wrap {
+      position: relative;
+      width: 100%;
+      height: 42px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      background: transparent;
+    }
+    .selected-area.has-tags + .tag-search-wrap { height: 36px; }
+    .tag-composer.is-searching .tag-search-wrap { border-bottom: 1px solid rgba(0,0,0,.1); }
+    .tag-search { width: 100%; height: 100%; border: 0; outline: 0; padding: 0; background: transparent; font-size: 14px; }
+    .tag-search::placeholder { color: var(--muted); }
+
+    .create-tag {
+      width: 100%;
+      min-height: 34px;
+      border: 0;
+      border-bottom: 1px solid rgba(0,0,0,.1);
+      display: none;
+      align-items: center;
+      gap: 7px;
+      padding: 0 10px;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      font-size: 13px;
+    }
+    .create-tag.is-show { display: flex; }
+    .create-tag svg { width: 15px; height: 15px; }
+
+    .tag-grid {
+      max-height: 186px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px 8px;
+      margin-top: 12px;
+      padding: 4px 6px;
+      overflow: auto;
+    }
+    .tag-composer.is-searching .tag-grid { margin-top: 0; padding: 8px 10px 10px; }
+    .tag-option {
+      min-width: 0;
+      min-height: 28px;
+      border: 0;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 4px;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      font-size: 14px;
+    }
+    .tag-option > svg { width: 16px; height: 16px; flex: 0 0 16px; stroke-width: 1.7; }
+    .tag-option:hover { background: rgba(0,0,0,.045); }
+    .tag-option.is-selected { color: var(--blue); background: var(--blue-soft); }
+    .tag-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tag-match { color: var(--blue); }
+    .tag-count { flex: 0 0 auto; color: var(--placeholder); }
+
+    .popup-footer {
+      position: relative;
+      min-height: 48px;
+      display: flex;
+      align-items: start;
+      justify-content: flex-end;
+      gap: 16px;
+      padding: 0 16px 16px;
+      background: #ededed;
+    }
+    .command {
+      min-width: 80px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      padding: 0 12px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .command:hover { background: #f4f5f6; }
+    .command.primary { border-color: var(--blue); color: #fff; background: var(--blue); }
+    .command.primary:hover { background: #0048bd; }
+    .command.danger { color: var(--text); }
+
+    .folder-picker {
+      grid-template-rows: 48px minmax(0, 1fr) 48px;
+      height: min(600px, calc(100vh - var(--chrome-h) - 18px));
+      background: #fff;
+    }
+    .folder-head { display: flex; align-items: center; gap: 9px; padding: 0 12px; border-bottom: 1px solid rgba(0,0,0,.08); }
+    .folder-head strong { font-size: 14px; font-weight: 500; }
+    .folder-body { min-height: 0; padding: 10px 12px; overflow: auto; }
+    .folder-search-wrap { position: relative; }
+    .folder-search-wrap svg { position: absolute; left: 9px; top: 50%; width: 15px; height: 15px; transform: translateY(-50%); color: #7f8790; }
+    .folder-search {
+      width: 100%;
+      height: 32px;
+      border: 1px solid #aeb5bd;
+      border-radius: 4px;
+      padding: 0 28px;
+      outline: 0;
+      font-size: 13px;
+    }
+    .folder-section-title { margin: 18px 0 7px; color: #858b93; font-size: 12px; }
+    .folder-row {
+      width: 100%;
+      min-height: 32px;
+      border: 0;
+      border-radius: 3px;
+      display: grid;
+      grid-template-columns: 18px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 7px;
+      padding: 0 7px;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      font-size: 13px;
+    }
+    .folder-row:hover, .folder-row.is-active { background: #e9eaec; }
+    .folder-row.child { padding-left: 23px; }
+    .folder-row svg { width: 15px; height: 15px; }
+    .folder-row .count { color: #858b93; }
+
+    .collection-panel {
+      left: 50%;
+      bottom: calc(var(--folder-h) + 18px);
+      width: min(980px, calc(100vw - 44px));
+      height: min(560px, calc(100vh - 150px));
+      transform: translate(-50%, 5px) scale(.99);
+      border-radius: 7px;
+      overflow: hidden;
+    }
+    .collection-panel.is-open { transform: translate(-50%, 0) scale(1); }
+    .collection-head { height: 66px; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid rgba(0,0,0,.1); }
+    .collection-logo { width: 38px; height: 38px; object-fit: contain; }
+    .collection-title { min-width: 0; flex: 1; }
+    .collection-title strong { display: block; font-size: 16px; }
+    .collection-title span { display: block; margin-top: 3px; color: #737b85; font-size: 12px; }
+    .collection-body { height: calc(100% - 66px); display: grid; grid-template-columns: minmax(0,1fr) 210px; }
+    .site-list { min-width: 0; padding: 8px 14px; overflow: auto; }
+    .site-row {
+      position: relative;
+      min-height: 66px;
+      display: grid;
+      grid-template-columns: 38px minmax(0,1fr) auto 28px;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 5px;
+      border-bottom: 1px solid rgba(0,0,0,.08);
+    }
+    .site-row:hover { background: #f5f6f7; }
+    .site-icon { width: 36px; height: 36px; object-fit: contain; }
+    .site-copy { min-width: 0; }
+    .site-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; }
+    .site-meta { margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #7b838d; font-size: 11px; }
+    .site-tags { display: flex; gap: 5px; }
+    .site-tags .tag-pill { min-height: 22px; font-size: 11px; }
+    .item-more { width: 28px; height: 28px; border: 0; border-radius: 4px; display: grid; place-items: center; padding: 0; background: transparent; cursor: pointer; }
+    .item-more:hover { background: #e8ebee; }
+    .item-more svg { width: 15px; height: 15px; }
+    .facet-panel { min-width: 0; padding: 14px 12px; border-left: 1px solid rgba(0,0,0,.1); overflow: auto; }
+    .facet-panel h3 { margin: 0 0 10px; font-size: 13px; }
+    .facet {
+      width: 100%;
+      min-height: 34px;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 0 8px;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      font-size: 12px;
+    }
+    .facet:hover, .facet.is-active { border-color: rgba(0,82,217,.22); color: var(--blue); background: var(--blue-soft); }
+
+    .context-menu {
+      position: absolute;
+      z-index: 90;
+      width: 196px;
+      padding: 5px;
+      border: 1px solid rgba(0,0,0,.12);
+      border-radius: 6px;
+      background: #fff;
+      box-shadow: 0 14px 34px rgba(0,0,0,.18);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-4px);
+      transition: opacity 120ms ease, transform 120ms ease;
+    }
+    .context-menu.is-open { opacity: 1; visibility: visible; transform: translateY(0); }
+    .context-item {
+      width: 100%;
+      min-height: 31px;
+      border: 0;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 8px;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      font-size: 12px;
+    }
+    .context-item:hover { background: #f0f2f4; }
+    .context-item.danger { color: #b23b35; }
+    .context-item svg { width: 15px; height: 15px; }
+
+    .settings-popover {
+      position: absolute;
+      z-index: 70;
+      right: 10px;
+      bottom: calc(var(--folder-h) + 8px);
+      width: 274px;
+      padding: 12px;
+      border: 1px solid rgba(0,0,0,.12);
+      border-radius: 6px;
+      background: rgba(255,255,255,.98);
+      box-shadow: 0 14px 34px rgba(0,0,0,.16);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(5px);
+      transition: opacity 130ms ease, transform 130ms ease;
+    }
+    .settings-popover.is-open { opacity: 1; visibility: visible; transform: translateY(0); }
+    .settings-popover h3 { margin: 0 0 10px; font-size: 13px; }
+    .setting-row { min-height: 39px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid rgba(0,0,0,.07); font-size: 12px; }
+    .segmented { display: inline-flex; padding: 2px; border-radius: 5px; background: #edf0f3; }
+    .segment { height: 24px; border: 0; border-radius: 4px; padding: 0 8px; background: transparent; cursor: pointer; font-size: 11px; }
+    .segment.active { color: var(--blue); background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+
+    .toast {
+      position: absolute;
+      z-index: 120;
+      left: 50%;
+      bottom: calc(var(--folder-h) + 18px);
+      transform: translate(-50%, 8px);
+      padding: 8px 12px;
+      border-radius: 5px;
+      color: #fff;
+      background: rgba(20,22,26,.88);
+      box-shadow: 0 8px 22px rgba(0,0,0,.2);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 140ms ease, transform 140ms ease;
+      font-size: 12px;
+    }
+    .toast.is-show { opacity: 1; transform: translate(-50%, 0); }
+
+    .prototype-focus {
+      outline: 3px solid rgba(45,116,218,.86) !important;
+      outline-offset: -3px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.66), 0 0 0 4px rgba(45,116,218,.16) !important;
+    }
+    .prototype-element-focus { outline: 2px solid #2d74da !important; outline-offset: 2px; }
+
+    body.is-embed .scene { min-width: 0; min-height: 0; }
+
+    @media (max-width: 1600px) {
+      .tab[data-tab-priority="5"] { display: none; }
+    }
+
+    @media (max-width: 1280px) {
+      .tab[data-tab-priority="4"] { display: none; }
+    }
+
+    @media (max-width: 1120px) {
+      .toolbar-button.profile { display: none; }
+      .toolbar-actions { width: 126px; flex-basis: 126px; }
+      .browser-tools { width: 260px; flex-basis: 260px; }
+    }
+
+    @media (max-width: 1040px) {
+      .tab-reserved { display: none; }
+    }
+
+    @media (max-width: 1000px) {
+      .tab[data-tab-priority="3"],
+      .toolbar-button.history { display: none; }
+      .toolbar-actions { width: 72px; flex-basis: 72px; }
+      .browser-tools { width: 206px; flex-basis: 206px; }
+    }
+
+    @media (max-width: 860px) {
+      .tab[data-tab-priority="1"] { display: none; }
+    }
+
+    @media (max-width: 1180px) {
+      .extension-panel { right: 22px; }
+      .expanded-grid { grid-template-columns: repeat(17, minmax(40px, 1fr)); }
+      .site-tags { display: none; }
+      .folder-chip { font-size: 12px; }
+    }
+
+    @media (max-width: 680px) {
+      .folder-collection-panel { grid-template-columns: 48px minmax(104px, 138px) minmax(0, 1fr); }
+    }
+
+    @media (max-height: 720px) {
+      .expanded-dock { height: 264px; }
+      .collapse-button { bottom: calc(var(--folder-h) + 278px); }
+      .expanded-grid { grid-template-rows: repeat(3, 82px); }
+    }
+  </style>
+  <link rel="stylesheet" href="high-fi-demo-v2.css?v=20260806-folder-overflow-2">
+</head>
+<body data-ui-state="default">
+  <main class="scene" id="scene" aria-label="ZERO 新标签页真实组件原型">
+    <button class="wallpaper" id="wallpaper" type="button" data-module="wallpaper" aria-label="壁纸背景"></button>
+    <div class="wallpaper-shade"></div>
+
+    <header class="browser-chrome" id="browser-chrome" data-module="browser-shell">
+      <div class="chrome-nav">
+        <button class="chrome-icon" type="button" title="后退" aria-label="后退"><i data-lucide="arrow-left"></i></button>
+        <button class="chrome-icon" type="button" title="前进" aria-label="前进"><i data-lucide="arrow-right"></i></button>
+        <button class="chrome-icon" type="button" title="刷新" aria-label="刷新"><i data-lucide="refresh-cw"></i></button>
+      </div>
+      <div class="tab-area">
+        <div class="tab-list" role="tablist" aria-label="浏览器标签页示意">
+          <div class="tab" data-tab-priority="1" role="tab" tabindex="0" aria-label="360搜索，SO靠谱">
+            <div class="tab-surface">
+              <span class="tab-leading">
+                <span class="site-favicon" aria-hidden="true"><img class="favicon-arc" src="assets/figma/tabbar/360-arc.svg" alt=""><img class="favicon-smile" src="assets/figma/tabbar/360-smile.svg" alt=""><img class="favicon-dot" src="assets/figma/tabbar/360-dot.svg" alt=""></span>
+                <span class="tab-label">360搜索，SO靠谱</span>
+              </span>
+            </div>
+          </div>
+          <div class="tab active" data-tab-priority="2" role="tab" tabindex="0" aria-current="page" aria-selected="true" aria-label="360搜索，SO靠谱，当前标签页">
+            <div class="tab-surface">
+              <span class="tab-leading">
+                <span class="site-favicon" aria-hidden="true"><img class="favicon-arc" src="assets/figma/tabbar/360-arc.svg" alt=""><img class="favicon-smile" src="assets/figma/tabbar/360-smile.svg" alt=""><img class="favicon-dot" src="assets/figma/tabbar/360-dot.svg" alt=""></span>
+                <span class="tab-label">360搜索，SO靠谱</span>
+              </span>
+              <span class="tab-trailing">
+                <button class="tab-action" type="button" title="收藏此标签页" aria-label="收藏此标签页"><i data-lucide="star"></i></button>
+                <button class="tab-action" type="button" title="关闭标签页" aria-label="关闭标签页"><i data-lucide="x"></i></button>
+              </span>
+            </div>
+          </div>
+          <div class="tab" data-tab-priority="3" role="tab" tabindex="0" aria-label="360搜索，SO靠谱">
+            <div class="tab-surface">
+              <span class="tab-leading">
+                <span class="site-favicon" aria-hidden="true"><img class="favicon-arc" src="assets/figma/tabbar/360-arc.svg" alt=""><img class="favicon-smile" src="assets/figma/tabbar/360-smile.svg" alt=""><img class="favicon-dot" src="assets/figma/tabbar/360-dot.svg" alt=""></span>
+                <span class="tab-label">360搜索，SO靠谱</span>
+              </span>
+            </div>
+          </div>
+          <div class="tab" data-tab-priority="4" role="tab" tabindex="0" aria-label="360搜索，SO靠谱">
+            <div class="tab-surface">
+              <span class="tab-leading">
+                <span class="site-favicon" aria-hidden="true"><img class="favicon-arc" src="assets/figma/tabbar/360-arc.svg" alt=""><img class="favicon-smile" src="assets/figma/tabbar/360-smile.svg" alt=""><img class="favicon-dot" src="assets/figma/tabbar/360-dot.svg" alt=""></span>
+                <span class="tab-label">360搜索，SO靠谱</span>
+              </span>
+            </div>
+          </div>
+          <div class="tab" data-tab-priority="5" role="tab" tabindex="0" aria-label="360搜索，SO靠谱">
+            <div class="tab-surface">
+              <span class="tab-leading">
+                <span class="site-favicon" aria-hidden="true"><img class="favicon-arc" src="assets/figma/tabbar/360-arc.svg" alt=""><img class="favicon-smile" src="assets/figma/tabbar/360-smile.svg" alt=""><img class="favicon-dot" src="assets/figma/tabbar/360-dot.svg" alt=""></span>
+                <span class="tab-label">360搜索，SO靠谱</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="tab-addons">
+          <button class="tab-compact" type="button" title="新建标签页" aria-label="新建标签页"><i data-lucide="plus"></i></button>
+          <button class="tab-compact custom-icon" type="button" title="标签页管理" aria-label="标签页管理"><img src="assets/figma/tabbar/tab-grouping.svg" alt=""></button>
+        </div>
+        <div class="tab-reserved" aria-hidden="true"></div>
+      </div>
+      <div class="browser-tools">
+        <div class="toolbar-actions">
+          <button class="toolbar-button extension" type="button" title="扩展程序" aria-label="扩展程序"><i data-lucide="puzzle"></i></button>
+          <button class="toolbar-button plugin-entry" id="plugin-entry" type="button" data-module="save-panel" title="打开保存当前网页插件" aria-label="打开保存当前网页插件" aria-haspopup="dialog" aria-expanded="false" aria-controls="extension-panel"><img src="assets/figma/tabbar/ai-assistant.svg" alt=""></button>
+          <button class="toolbar-button history" type="button" title="历史记录" aria-label="历史记录，29 条"><i data-lucide="history"></i><span>29</span><i class="chevron" data-lucide="chevron-down"></i></button>
+          <button class="toolbar-button profile" type="button" title="用户菜单" aria-label="用户菜单"><span class="profile-badge">刘</span><i class="chevron" data-lucide="chevron-down"></i></button>
+        </div>
+        <div class="window-actions">
+          <button class="window-button" type="button" title="最小化" aria-label="最小化"><i data-lucide="minus"></i></button>
+          <button class="window-button" type="button" title="最大化" aria-label="最大化"><i data-lucide="square"></i></button>
+          <button class="window-button close" type="button" title="关闭" aria-label="关闭"><i data-lucide="x"></i></button>
+        </div>
+      </div>
+    </header>
+
+    <form class="search-shell" id="search-form" data-module="search-box" role="search">
+      <button class="search-engine-button" id="search-engine-button" type="button" aria-label="切换搜索引擎" aria-haspopup="menu" aria-expanded="false"><i data-lucide="search"></i><span class="visually-hidden" id="search-engine-mark">360 搜索</span></button>
+      <input class="search-input" id="main-search" aria-label="搜索或输入网址" placeholder="搜索或输入网址" autocomplete="off">
+      <button class="search-action" type="button" data-search-action="add" aria-label="添加内容"><i data-lucide="plus"></i></button>
+      <button class="search-action" type="button" data-search-action="scope" aria-label="仅搜索已保存内容" aria-pressed="false"><i data-lucide="sliders-horizontal"></i></button>
+      <button class="search-action" type="button" data-search-action="voice" aria-label="语音输入"><i data-lucide="mic"></i></button>
+      <button class="search-action submit" type="submit" aria-label="提交搜索"><i data-lucide="arrow-up"></i></button>
+    </form>
+
+    <div class="search-engine-menu" id="search-engine-menu" role="menu" aria-label="选择搜索引擎"></div>
+    <div class="search-menu" id="search-menu" role="listbox" aria-label="搜索建议"></div>
+
+    <section class="default-dock" id="default-dock" data-module="domain-dock" aria-label="站点 Dock">
+      <div class="dock-row" id="dock-row"></div>
+      <button class="expand-button" id="expand-dock" type="button" aria-label="展开站点 Dock" aria-expanded="false"><span class="grid-symbol"><img src="assets/figma/site-17.png" alt=""></span><span class="dock-site-label dock-more-label">更多</span></button>
+    </section>
+
+    <section class="expanded-dock" id="expanded-dock" data-module="domain-dock" aria-label="展开的站点 Dock">
+      <div class="expanded-grid" id="expanded-grid"></div>
+      <button class="collapse-button" id="collapse-dock" type="button" aria-label="收起站点 Dock"><i data-lucide="chevron-down"></i></button>
+    </section>
+
+    <footer class="folder-header" id="folder-header" data-module="category-bar">
+      <div class="folder-list" id="bottom-folders" aria-label="普通收藏夹"></div>
+      <button class="folder-more-button" id="folder-more-button" type="button" aria-label="查看更多收藏夹" aria-haspopup="dialog" aria-expanded="false" aria-controls="folder-overflow-panel" hidden><i data-lucide="chevrons-right"></i></button>
+      <div class="tool-zone" id="tool-zone" data-module="tool-zone" aria-label="工具区"></div>
+    </footer>
+
+    <section class="folder-overflow-panel" id="folder-overflow-panel" role="dialog" aria-label="更多收藏夹" aria-hidden="true" hidden></section>
+
+    <section class="folder-collection-panel bookmark-collection-panel" id="folder-collection-panel" data-module="category-bar" role="dialog" aria-label="普通收藏夹内容" aria-hidden="true">
+      <div class="folder-site-rail" id="folder-site-rail" aria-label="按站点筛选"></div>
+      <div class="folder-content-surface">
+        <header class="folder-content-head collection-toolbar">
+          <div class="folder-path" id="folder-path" aria-label="当前收藏夹"></div>
+          <div class="folder-head-actions">
+            <div class="folder-sort" id="folder-sort" aria-label="排序方式">
+              <button class="collection-sort-button folder-sort-button is-active" type="button" data-folder-sort="time" aria-pressed="true">最近保存</button>
+              <button class="collection-sort-button folder-sort-button" type="button" data-folder-sort="name" aria-pressed="false">名称</button>
+            </div>
+            <button class="folder-panel-close" id="close-folder-collection" type="button" aria-label="关闭收藏夹"><i data-lucide="x"></i></button>
+          </div>
+        </header>
+        <div class="collection-body folder-collection-body">
+          <div class="site-list folder-bookmark-list" id="folder-bookmark-list" aria-live="polite"></div>
+          <aside class="facet-panel folder-facet-panel" id="folder-facet-panel" data-module="tag-filter"><h3>标签筛选</h3><div id="folder-facets"></div></aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel extension-panel" id="extension-panel" data-module="save-panel" data-ui-state="default" role="dialog" aria-label="保存当前网页 Popup" aria-hidden="true">
+      <div class="popup-main">
+        <header class="popup-head">
+          <img class="popup-site-icon" id="popup-site-icon" src="assets/figma/popup-site.png" alt="当前网页站点图标" data-bind="currentPage.favicon" width="32" height="32">
+          <div class="popup-title">
+            <strong id="popup-title" data-bind="bookmark.statusCopy">已收藏到你的空间</strong>
+            <button class="folder-entry" id="open-folder-picker" type="button" data-element="folder" data-action="open-folder-picker" aria-haspopup="dialog" aria-expanded="false" aria-controls="popup-folder-picker"><img class="folder-entry-icon" src="assets/figma/popup-folder.svg" alt=""><span id="folder-value" data-bind="bookmark.folderName">未分类</span><img class="folder-entry-chevron" src="assets/figma/popup-chevron.svg" alt=""></button>
+          </div>
+        </header>
+
+        <div class="popup-body">
+          <section class="popup-system-state" id="popup-system-state" aria-live="polite" hidden>
+            <span class="system-state-icon"><i data-lucide="bookmark-x"></i></span>
+            <strong id="popup-system-title">收藏失败</strong>
+            <p id="popup-system-copy">当前网页没有保存成功，请重试。</p>
+            <div class="system-state-actions">
+              <button class="command" id="close-save-error" type="button" data-action="close-save-error">关闭</button>
+              <button class="command primary" id="retry-save" type="button" data-action="retry-save">重试</button>
+            </div>
+          </section>
+
+          <div class="tag-composer" id="tag-composer" data-ui-region="tag-editor">
+            <div class="tag-input-card">
+              <div class="selected-area" id="selected-area" data-element="tags">
+                <div class="selected-tags" id="selected-tags" data-collection="selected-tags" data-item-selector=".tag-pill"></div>
+                <button class="tag-overflow" id="selected-overflow" type="button" aria-expanded="false" aria-controls="selected-overflow-panel" hidden><span>+0</span></button>
+                <div class="selected-overflow-panel" id="selected-overflow-panel" role="dialog" aria-label="更多已选标签" hidden></div>
+              </div>
+              <div class="tag-search-wrap"><input class="tag-search" id="tag-search" name="tag-search" placeholder="搜索或新增标签..." aria-label="搜索或新增标签" data-action="search-tags"></div>
+            </div>
+            <div class="inline-feedback" id="popup-feedback" role="status" hidden><i data-lucide="circle-alert"></i><span id="popup-feedback-copy">保存失败，请重试</span><button id="popup-feedback-retry" type="button">重试</button></div>
+            <button class="create-tag" id="create-tag" type="button" data-action="create-tag"><i data-lucide="plus"></i><span></span></button>
+            <div class="tag-grid" id="tag-grid" data-collection="tag-options" data-item-selector=".tag-option" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <footer class="popup-footer" id="popup-footer">
+          <button class="command popup-side-panel-button" id="open-side-panel" type="button" data-element="side-panel" data-action="open-side-panel"><i data-lucide="panel-right-open"></i><span>打开侧栏</span></button>
+          <button class="command danger" id="cancel-bookmark" type="button" data-element="cancel" data-action="cancel-bookmark">取消收藏</button>
+          <button class="command primary" id="done-popup" type="button" data-element="done" data-action="close-popup">完成</button>
+        </footer>
+      </div>
+
+      <div class="folder-picker" id="popup-folder-picker" role="dialog" aria-label="选择收藏夹">
+        <header class="folder-head"><button class="icon-button" id="back-popup" type="button" aria-label="返回 Popup" data-action="close-folder-picker"><i data-lucide="arrow-left"></i></button><strong>选择收藏夹</strong></header>
+        <div class="folder-body">
+          <div class="folder-search-wrap"><i data-lucide="search"></i><input class="folder-search" id="folder-search" name="folder-search" placeholder="搜索或新建收藏夹..." aria-label="搜索或新建收藏夹" data-action="search-folders"></div>
+          <div class="inline-feedback folder-feedback" id="folder-feedback" role="status" hidden><i data-lucide="circle-alert"></i><span id="folder-feedback-copy">保存失败，请重试</span><button id="folder-feedback-retry" type="button">重试</button></div>
+          <div class="folder-list-picker" id="system-folders" data-collection="system-folders" data-item-selector=".folder-row"></div>
+          <div class="folder-section-title" id="folder-section-title">收藏</div>
+          <div class="folder-list-picker" id="folder-list" data-collection="user-folders" data-item-selector=".folder-row"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel collection-panel bookmark-collection-panel" id="collection-panel" data-module="collection-panel" role="dialog" aria-label="站点内容集合" aria-hidden="true">
+      <header class="collection-head">
+        <img class="collection-logo" id="collection-logo" src="assets/figma/site-06.png" alt="">
+        <div class="collection-title"><strong id="collection-name">知乎</strong><span id="collection-meta">zhihu.com · 4 条保存内容</span></div>
+        <div class="collection-head-actions">
+          <div class="collection-sort" id="collection-sort" aria-label="排序方式">
+            <button class="collection-sort-button is-active" type="button" data-collection-sort="time" aria-pressed="true">最近保存</button>
+            <button class="collection-sort-button" type="button" data-collection-sort="name" aria-pressed="false">名称</button>
+          </div>
+          <button class="icon-button" id="close-collection" type="button" aria-label="关闭集合"><i data-lucide="x"></i></button>
+        </div>
+      </header>
+      <div class="collection-body">
+        <div class="site-list" id="site-list"></div>
+        <aside class="facet-panel" id="facet-panel" data-module="tag-filter"><h3>标签筛选</h3><div id="facets"></div></aside>
+      </div>
+    </section>
+
+    <div class="context-menu" id="context-menu" data-module="context-menu" role="menu" aria-label="操作菜单" aria-hidden="true"></div>
+
+    <section class="settings-popover" id="settings-popover" data-module="tool-zone" role="dialog" aria-label="Dock 设置" aria-hidden="true"></section>
+
+    <aside class="side-panel-preview" id="side-panel-preview" aria-label="收藏侧栏预览" hidden>
+      <iframe id="side-panel-frame" title="ZERO 收藏侧栏" src="side-panel-demo.html?tab=open&current=saved"></iframe>
+    </aside>
+
+    <div class="confirm-backdrop" id="confirm-backdrop" hidden></div>
+    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"><span id="toast-copy"></span><button id="toast-action" type="button" hidden>撤销</button></div>
+    <div class="ui-tooltip-v2" id="ui-tooltip-v2" role="tooltip" hidden></div>
+  </main>
+
+  <script src="assets/lucide.min.js"></script>
+  <script type="text/plain" id="legacy-high-fi-script">
+    const params = new URLSearchParams(location.search);
+    const embedMode = params.get("embed") === "1";
+    const initialModule = params.get("module") || "";
+    const initialElement = params.get("element") || "";
+    if (embedMode) document.body.classList.add("is-embed");
+
+    const scene = document.getElementById("scene");
+    const extensionPanel = document.getElementById("extension-panel");
+    const pluginEntry = document.getElementById("plugin-entry");
+    const popupFooter = document.getElementById("popup-footer");
+    const collectionPanel = document.getElementById("collection-panel");
+    const folderCollectionPanel = document.getElementById("folder-collection-panel");
+    const contextMenu = document.getElementById("context-menu");
+    const settingsPopover = document.getElementById("settings-popover");
+    const searchMenu = document.getElementById("search-menu");
+    const toast = document.getElementById("toast");
+
+    const dockSites = [
+      ["QQ音乐", "y.qq.com", 3, "site-01.png"], ["喜马拉雅", "ximalaya.com", 2, "site-ximalaya.png"], ["GitHub", "github.com", 5, "site-02.png"],
+      ["腾讯视频", "v.qq.com", 2, "site-03.png"], ["Bilibili", "bilibili.com", 4, "site-04.png"], ["知乎", "zhihu.com", 4, "site-05.png"],
+      ["音频社区", "audio.example", 3, "site-06.png"], ["灵感库", "huaban.com", 2, "site-07.png"], ["Bilibili", "bilibili.com", 3, "site-04.png"],
+      ["Behance", "behance.net", 2, "site-08.png"], ["创作社区", "zcool.com.cn", 3, "site-09.png"], ["抖音", "douyin.com", 4, "site-10.png"],
+      ["音乐空间", "music.example", 2, "site-11.png"], ["素材站", "assets.example", 1, "site-12.png"], ["知识库", "knowledge.example", 3, "site-13.png"],
+      ["音频工具", "sound.example", 2, "site-14.png"], ["原型工具", "prototype.example", 2, "site-15.png"], ["协作空间", "team.example", 3, "site-whale.png"],
+      ["Premiere Pro", "adobe.com", 2, "site-premiere.png"], ["游戏资料", "game.example", 2, "site-knight.png"], ["开发工具", "developer.example", 2, "site-brackets.png"],
+      ["视觉工具", "visual.example", 2, "site-eyes.png"], ["创作工具", "creator.example", 2, "site-bird.png"]
+    ];
+    const expandedDockSites = dockSites.slice(0, 17);
+
+    const bottomFolders = [
+      ["未分类", "rgba(60,77,128,.5)"], ["图标设计skill", "rgba(217,30,58,.5)"], ["ui界面设计skill", "rgba(2,156,74,.5)"],
+      ["logo设计skill", "rgba(85,29,176,.5)"], ["obsidian项目", "rgba(32,108,207,.5)"], ["skill推荐", "rgba(207,175,15,.5)"],
+      ["分区壁纸", "rgba(204,81,32,.5)"], ["nas", "rgba(60,77,128,.5)"], ["设计参考", "rgba(203,30,131,.5)"],
+      ["团队周报", "rgba(0,60,171,.5)"], ["网盘项目", "rgba(126,183,18,.5)"], ["育儿教育", "rgba(204,146,19,.5)"], ["纪录片", "rgba(217,30,58,.5)"]
+    ];
+
+    const folderPanelFolders = bottomFolders.map((folder) => folder[0]);
+    const folderPanelSites = [dockSites[5], dockSites[2], dockSites[4], dockSites[7], dockSites[9], dockSites[11], dockSites[18], dockSites[20]];
+    const folderPanelTitles = [
+      "产品需求讨论工作台与交互地图", "ZERO 浏览器新标签页设计记录", "收藏夹与标签的组织方式", "浏览器插件 Popup 视觉参考",
+      "Lucide 图标语义检索与筛选", "Figma 组件布局和响应式标注", "产品原型的高保真校准方法", "需求变更与决策记录",
+      "新标签页壁纸与通透材质", "浏览器工具区交互参考", "域名内容聚合与标签筛选", "稍后继续阅读的设计案例",
+      "团队协作项目资料", "常用设计资源与素材库", "网页收藏结构调研", "交互状态与异常场景"
+    ];
+
+    const tools = [
+      ["refresh-cw", "刷新"], ["calendar-days", "日历"], ["alarm-clock", "闹钟"], ["languages", "翻译"],
+      ["sun", "主题"], ["plus", "添加工具"], ["settings", "设置"]
+    ];
+
+    const tags = ["设计干货", "UI 排版小技巧", "新手设计师避坑", "配色思路", "平面设计", "AI 绘图设计", "封面设计", "短视频封面设计干货", "品牌视觉设计", "设计审美提升", "视觉层次设计", "图文排版设计", "插画设计", "LOGO 设计", "设计师日常", "版式设计"];
+    const foldersData = [["R 人物-人", 2], ["J 建筑-房子", 3], ["D 动物", 10], ["F 风格", 13], ["H 绘本", 1], ["X 小红书", 36], ["租房", 3], ["蛇房营南里", 3]];
+    const bookmarkTemplates = [
+      ["最近保存的内容", ["平面设计", "设计干货"]], ["内容整理与使用记录", ["设计审美提升"]],
+      ["信息结构与浏览体验参考", ["UI 排版小技巧", "视觉层次设计"]], ["标签与收藏夹的组织方式", ["设计干货"]],
+      ["值得继续阅读的案例", ["品牌视觉设计", "版式设计"]], ["创作流程与效率技巧", ["AI 绘图设计"]],
+      ["视觉灵感与配色参考", ["配色思路", "插画设计"]], ["稍后处理的网页内容", ["图文排版设计"]]
+    ];
+
+    const stateKey = "zero-live-prototype-state-v2";
+    const storedState = (() => { try { return JSON.parse(sessionStorage.getItem(stateKey) || "{}"); } catch { return {}; } })();
+    let selectedTags = new Set(Array.isArray(storedState.selectedTags) ? storedState.selectedTags : []);
+    let activeFolder = storedState.activeFolder || "未分类";
+    let bookmarkSaved = Boolean(storedState.bookmarkSaved);
+    let activeFacet = "全部";
+    let activeCollectionSite = dockSites[5];
+    let activeFolderPanelName = "未分类";
+    let activeFolderPanelSite = 0;
+    let activeFolderPanelSort = "time";
+
+    function persistState() {
+      sessionStorage.setItem(stateKey, JSON.stringify({ bookmarkSaved, activeFolder, selectedTags: Array.from(selectedTags) }));
+    }
+
+    function refreshIcons() { if (window.lucide) window.lucide.createIcons(); }
+    function asset(name) { return "assets/figma/" + name; }
+
+    function notifyParent(module, element = null) {
+      if (window.parent !== window) window.parent.postMessage({ type: "zero-prototype-select", module, element }, location.origin);
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("is-show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("is-show"), 1700);
+    }
+
+    function closeTransient() {
+      extensionPanel.classList.remove("is-open", "is-folder-mode");
+      pluginEntry.classList.remove("is-active");
+      collectionPanel.classList.remove("is-open");
+      folderCollectionPanel.classList.remove("is-open");
+      folderCollectionPanel.setAttribute("aria-hidden", "true");
+      document.querySelectorAll(".folder-chip.is-active").forEach((button) => button.classList.remove("is-active"));
+      contextMenu.classList.remove("is-open");
+      settingsPopover.classList.remove("is-open");
+      searchMenu.classList.remove("is-open");
+      document.querySelectorAll(".tool-button.is-active").forEach((button) => button.classList.remove("is-active"));
+    }
+
+    function renderDock() {
+      document.getElementById("dock-row").innerHTML = dockSites.map((site, index) =>
+        '<button class="dock-site" type="button" data-site="' + index + '" aria-label="打开' + site[0] + '内容集合">' +
+        '<img src="' + asset(site[3]) + '" alt=""><span class="dock-tooltip"><strong>' + site[0] + '</strong><span>' + site[1] + ' · 已保存 ' + site[2] + ' 条</span></span></button>'
+      ).join("");
+
+      const expanded = [];
+      for (let row = 0; row < 3; row++) {
+        expandedDockSites.forEach((site, index) => expanded.push('<button class="expanded-site" type="button" data-expanded-site="' + index + '"><img src="' + asset(site[3]) + '" alt=""><span>' + site[0] + '</span></button>'));
+      }
+      document.getElementById("expanded-grid").innerHTML = expanded.join("");
+
+      document.querySelectorAll("[data-site], [data-expanded-site]").forEach((button) => button.addEventListener("click", () => {
+        const index = Number(button.dataset.site ?? button.dataset.expandedSite);
+        openCollection(index);
+        notifyParent("collection-panel");
+      }));
+
+      requestAnimationFrame(syncDockCapacity);
+    }
+
+    function syncDockCapacity() {
+      const row = document.getElementById("dock-row");
+      const slot = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--dock-site-slot")) || 80;
+      const capacity = Math.max(1, Math.floor(row.clientWidth / slot));
+      row.querySelectorAll(".dock-site").forEach((button, index) => { button.hidden = index >= capacity; });
+    }
+
+    function folderPanelBookmarks() {
+      const folderOffset = Math.max(0, folderPanelFolders.indexOf(activeFolderPanelName)) * 2;
+      const items = Array.from({ length: 16 }, (_, index) => {
+        const siteIndex = (activeFolderPanelSite + index) % folderPanelSites.length;
+        return {
+          title: folderPanelTitles[(folderOffset + index) % folderPanelTitles.length],
+          site: folderPanelSites[siteIndex],
+          order: index
+        };
+      });
+      if (activeFolderPanelSort === "name") items.sort((left, right) => left.title.localeCompare(right.title, "zh-CN"));
+      return items;
+    }
+
+    function renderFolderCollection() {
+      document.getElementById("folder-site-rail").innerHTML = folderPanelSites.map((site, index) =>
+        '<button class="folder-site-filter ' + (index === activeFolderPanelSite ? 'is-active' : '') + '" type="button" data-folder-site-filter="' + index + '" title="' + site[0] + '"><img src="' + asset(site[3]) + '" alt=""></button>'
+      ).join("");
+      document.querySelectorAll("[data-folder-sort]").forEach((button) => button.classList.toggle("is-active", button.dataset.folderSort === activeFolderPanelSort));
+      document.getElementById("folder-bookmark-list").innerHTML = folderPanelBookmarks().map((item) =>
+        '<button class="folder-bookmark-row" type="button" title="' + item.title + '"><img src="' + asset(item.site[3]) + '" alt=""><span>' + item.title + '</span></button>'
+      ).join("");
+
+      document.querySelectorAll("[data-folder-site-filter]").forEach((button) => button.addEventListener("click", () => {
+        activeFolderPanelSite = Number(button.dataset.folderSiteFilter);
+        renderFolderCollection();
+      }));
+      document.querySelectorAll(".folder-bookmark-row").forEach((button) => button.addEventListener("click", () => showToast('打开“' + button.textContent.trim() + '”')));
+      refreshIcons();
+    }
+
+    function openFolderCollection(folderName = "未分类") {
+      closeTransient();
+      scene.classList.remove("is-expanded");
+      activeFolderPanelName = folderPanelFolders.includes(folderName) ? folderName : "未分类";
+      activeFolderPanelSite = 0;
+      renderFolderCollection();
+      folderCollectionPanel.classList.add("is-open");
+      folderCollectionPanel.setAttribute("aria-hidden", "false");
+      document.querySelectorAll(".folder-chip").forEach((chip) => chip.classList.toggle("is-active", chip.title === activeFolderPanelName));
+    }
+
+    function renderBottom() {
+      document.getElementById("bottom-folders").innerHTML = bottomFolders.map((folder) => '<button class="folder-chip" type="button" style="--chip:' + folder[1] + '" title="' + folder[0] + '"><i data-lucide="folder"></i><span>' + folder[0] + '</span></button>').join("");
+      document.querySelectorAll(".folder-chip").forEach((button) => button.addEventListener("click", () => { openFolderCollection(button.textContent.trim()); notifyParent("category-bar"); }));
+
+      document.getElementById("tool-zone").innerHTML = tools.map((tool, index) => '<button class="tool-button" type="button" data-tool-index="' + index + '" title="' + tool[1] + '" aria-label="' + tool[1] + '"><i data-lucide="' + tool[0] + '"></i></button>').join("");
+      document.querySelectorAll("[data-tool-index]").forEach((button) => button.addEventListener("click", () => {
+        const tool = tools[Number(button.dataset.toolIndex)];
+        notifyParent("tool-zone");
+        scene.classList.remove("is-expanded");
+        if (tool[1] === "设置") {
+          const willOpen = !settingsPopover.classList.contains("is-open");
+          closeTransient();
+          settingsPopover.classList.toggle("is-open", willOpen);
+          button.classList.toggle("is-active", willOpen);
+        } else {
+          closeTransient();
+          showToast(tool[1] + "功能仍待模块讨论");
+        }
+      }));
+    }
+
+    function openPopup() {
+      bookmarkSaved = true;
+      closeTransient();
+      scene.classList.remove("is-expanded");
+      extensionPanel.classList.add("is-open");
+      extensionPanel.classList.remove("is-folder-mode");
+      pluginEntry.classList.add("is-active");
+      document.getElementById("folder-value").textContent = activeFolder;
+      persistState();
+      renderTags();
+      renderSelectedTags();
+      showToast(restored ? "已恢复 Bookmark，Dock 数量不变" : "Bookmark 已创建，Dock 数量已更新");
+      refreshIcons();
+    }
+
+    function renderTags(query = "") {
+      const normalized = query.trim().toLowerCase();
+      const filtered = tags.filter((tag) => !normalized || tag.toLowerCase().includes(normalized));
+      const visible = normalized ? filtered : filtered.slice(0, 8);
+      const escapeHTML = (value) => value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
+      const highlight = (tag) => {
+        if (!normalized) return escapeHTML(tag);
+        const index = tag.toLowerCase().indexOf(normalized);
+        if (index < 0) return escapeHTML(tag);
+        return escapeHTML(tag.slice(0, index)) + '<span class="tag-match">' + escapeHTML(tag.slice(index, index + query.trim().length)) + '</span>' + escapeHTML(tag.slice(index + query.trim().length));
+      };
+      document.getElementById("tag-composer").classList.toggle("is-searching", Boolean(normalized));
+      document.getElementById("tag-grid").innerHTML = visible.map((tag, index) => '<button class="tag-option ' + (selectedTags.has(tag) ? 'is-selected' : '') + '" type="button" data-tag="' + tag + '">' + (!normalized ? '<i data-lucide="clock-3"></i>' : '') + '<span class="tag-label">' + highlight(tag) + '</span><span class="tag-count">(' + (4 + index % 5) + ')</span></button>').join("");
+      document.querySelectorAll("[data-tag]").forEach((button) => button.addEventListener("click", () => {
+        const tag = button.dataset.tag;
+        if (selectedTags.has(tag)) selectedTags.delete(tag); else selectedTags.add(tag);
+        persistState();
+        renderTags(document.getElementById("tag-search").value);
+        renderSelectedTags();
+        notifyParent("save-panel", "tags");
+        showToast("标签已即时保存");
+      }));
+      const exact = tags.some((tag) => tag.toLowerCase() === normalized);
+      const createTag = document.getElementById("create-tag");
+      createTag.classList.toggle("is-show", Boolean(normalized && !exact));
+      createTag.querySelector("span").textContent = normalized ? '新增标签“' + query.trim() + '”' : "";
+      refreshIcons();
+    }
+
+    function renderSelectedTags() {
+      const area = document.getElementById("selected-area");
+      area.classList.toggle("has-tags", selectedTags.size > 0);
+      document.getElementById("selected-tags").innerHTML = Array.from(selectedTags).map((tag) => '<span class="tag-pill"><i data-lucide="tag"></i><span>' + tag + '</span><button type="button" data-remove-tag="' + tag + '" aria-label="移除' + tag + '">×</button></span>').join("");
+      document.querySelectorAll("[data-remove-tag]").forEach((button) => button.addEventListener("click", () => {
+        selectedTags.delete(button.dataset.removeTag);
+        persistState();
+        renderTags(document.getElementById("tag-search").value);
+        renderSelectedTags();
+      }));
+      refreshIcons();
+    }
+
+    function renderFolders(query = "") {
+      const normalized = query.trim().toLowerCase();
+      document.getElementById("system-folders").innerHTML = '<button class="folder-row ' + (activeFolder === "未分类" ? 'is-active' : '') + '" type="button" data-folder="未分类"><i data-lucide="inbox"></i><span>未分类</span><span class="count">2</span></button>';
+      const visible = foldersData.filter((folder) => !normalized || folder[0].toLowerCase().includes(normalized));
+      document.getElementById("folder-list").innerHTML = visible.map((folder, index) => '<button class="folder-row ' + (activeFolder === folder[0] ? 'is-active' : '') + ' ' + (index === foldersData.length - 1 ? 'child' : '') + '" type="button" data-folder="' + folder[0] + '"><i data-lucide="folder"></i><span>' + folder[0] + '</span><span class="count">' + folder[1] + '</span></button>').join("") +
+        (normalized && !visible.some((folder) => folder[0].toLowerCase() === normalized) ? '<button class="folder-row" type="button" data-create-folder="' + query.trim() + '"><i data-lucide="plus"></i><span>新建“' + query.trim() + '”</span><span></span></button>' : '');
+      document.querySelectorAll("[data-folder]").forEach((button) => button.addEventListener("click", () => { activeFolder = button.dataset.folder; renderFolders(document.getElementById("folder-search").value); }));
+      document.querySelectorAll("[data-create-folder]").forEach((button) => button.addEventListener("click", () => {
+        activeFolder = button.dataset.createFolder;
+        foldersData.unshift([activeFolder, 0]);
+        document.getElementById("folder-search").value = "";
+        renderFolders();
+      }));
+      refreshIcons();
+    }
+
+    function openCollection(index) {
+      activeCollectionSite = dockSites[index];
+      closeTransient();
+      scene.classList.remove("is-expanded");
+      document.getElementById("collection-logo").src = asset(activeCollectionSite[3]);
+      document.getElementById("collection-name").textContent = activeCollectionSite[0];
+      document.getElementById("collection-meta").textContent = activeCollectionSite[1] + " · " + activeCollectionSite[2] + " 条保存内容";
+      activeFacet = "全部";
+      renderCollection();
+      collectionPanel.classList.add("is-open");
+    }
+
+    function collectionBookmarks() {
+      return Array.from({ length: activeCollectionSite[2] }, (_, index) => {
+        const template = bookmarkTemplates[index % bookmarkTemplates.length];
+        return { title: activeCollectionSite[0] + " · " + template[0], url: activeCollectionSite[1] + "/saved/" + String(index + 1).padStart(2, "0"), tags: template[1] };
+      });
+    }
+
+    function renderCollection() {
+      const bookmarks = collectionBookmarks();
+      const filtered = activeFacet === "全部" ? bookmarks : bookmarks.filter((item) => item.tags.includes(activeFacet));
+      document.getElementById("site-list").innerHTML = filtered.map((item, index) => '<div class="site-row" data-row-index="' + index + '"><img class="site-icon" src="' + asset(activeCollectionSite[3]) + '" alt=""><div class="site-copy"><div class="site-name">' + item.title + '</div><div class="site-meta">' + item.url + ' · 已加入：' + activeFolder + '</div></div><div class="site-tags">' + item.tags.slice(0,2).map((tag) => '<span class="tag-pill">' + tag + '</span>').join("") + '</div><button class="item-more" type="button" data-item-menu="' + index + '" aria-label="网站项操作"><i data-lucide="ellipsis"></i></button></div>').join("");
+      const facetCounts = new Map();
+      bookmarks.forEach((item) => item.tags.forEach((tag) => facetCounts.set(tag, (facetCounts.get(tag) || 0) + 1)));
+      document.getElementById("facets").innerHTML = '<button class="facet ' + (activeFacet === "全部" ? 'is-active' : '') + '" type="button" data-facet="全部"><span>全部</span><span>' + bookmarks.length + '</span></button>' + Array.from(facetCounts.entries()).map(([tag,count]) => '<button class="facet ' + (activeFacet === tag ? 'is-active' : '') + '" type="button" data-facet="' + tag + '"><span>' + tag + '</span><span>' + count + '</span></button>').join("");
+      document.querySelectorAll("[data-facet]").forEach((button) => button.addEventListener("click", () => { activeFacet = button.dataset.facet; renderCollection(); notifyParent("tag-filter"); }));
+      document.querySelectorAll("[data-item-menu]").forEach((button) => button.addEventListener("click", (event) => openContextMenu(event.currentTarget)));
+      document.querySelectorAll(".site-row").forEach((row) => row.addEventListener("contextmenu", (event) => { event.preventDefault(); openContextMenu(row.querySelector(".item-more")); }));
+      refreshIcons();
+    }
+
+    function openContextMenu(anchor) {
+      const rect = anchor.getBoundingClientRect();
+      contextMenu.style.left = Math.min(window.innerWidth - 206, rect.right - 196) + "px";
+      contextMenu.style.top = Math.min(window.innerHeight - 176, rect.bottom + 4) + "px";
+      contextMenu.classList.add("is-open");
+      notifyParent("context-menu");
+    }
+
+    function clearFocus() {
+      document.querySelectorAll(".prototype-focus, .prototype-element-focus").forEach((node) => node.classList.remove("prototype-focus", "prototype-element-focus"));
+    }
+
+    function applyDiscussionState(module, element = "") {
+      clearFocus();
+      if (!module) return;
+      if (module === "save-panel") { openPopup(); pluginEntry.classList.add("prototype-element-focus"); }
+      else if (["collection-panel", "tag-filter", "context-menu"].includes(module)) {
+        openCollection(11);
+        collectionPanel.classList.add("prototype-focus");
+        if (module === "tag-filter") document.getElementById("facet-panel").classList.add("prototype-focus");
+        if (module === "context-menu") requestAnimationFrame(() => { const more = document.querySelector("[data-item-menu]"); if (more) openContextMenu(more); contextMenu.classList.add("prototype-focus"); });
+      } else if (module === "search-box") { searchMenu.classList.add("is-open"); document.getElementById("search-form").classList.add("prototype-focus"); }
+      else if (module === "domain-dock") document.getElementById("default-dock").classList.add("prototype-focus");
+      else if (module === "browser-shell") document.getElementById("browser-chrome").classList.add("prototype-focus");
+      else if (module === "wallpaper") document.getElementById("wallpaper").classList.add("prototype-focus");
+      else if (module === "category-bar") { openFolderCollection("未分类"); folderCollectionPanel.classList.add("prototype-focus"); }
+      else if (module === "tool-zone") { settingsPopover.classList.add("is-open", "prototype-focus"); document.getElementById("tool-zone").classList.add("prototype-focus"); }
+      if (element) {
+        const target = document.querySelector('[data-element="' + element + '"]');
+        if (target) target.classList.add("prototype-element-focus");
+      }
+    }
+
+    pluginEntry.addEventListener("click", () => { openPopup(); notifyParent("save-panel"); });
+    document.getElementById("browser-chrome").addEventListener("click", (event) => { if (!event.target.closest("#plugin-entry")) notifyParent("browser-shell"); });
+    document.getElementById("wallpaper").addEventListener("click", () => notifyParent("wallpaper"));
+    document.getElementById("done-popup").addEventListener("click", () => { extensionPanel.classList.remove("is-open"); pluginEntry.classList.remove("is-active"); notifyParent("save-panel", "done"); showToast("Popup 已关闭，已生效操作不会丢失"); });
+    document.getElementById("open-folder-picker").addEventListener("click", () => { extensionPanel.classList.add("is-folder-mode"); renderFolders(); notifyParent("save-panel", "folder"); });
+    document.getElementById("back-popup").addEventListener("click", () => extensionPanel.classList.remove("is-folder-mode"));
+    document.getElementById("folder-search").addEventListener("input", (event) => renderFolders(event.target.value));
+    document.getElementById("tag-search").addEventListener("input", (event) => renderTags(event.target.value));
+    document.getElementById("create-tag").addEventListener("click", () => {
+      const input = document.getElementById("tag-search");
+      const value = input.value.trim();
+      if (!value) return;
+      if (!tags.includes(value)) tags.unshift(value);
+      selectedTags.add(value);
+      input.value = "";
+      persistState();
+      renderTags();
+      renderSelectedTags();
+      showToast("新标签已创建并即时保存");
+    });
+
+    document.getElementById("expand-dock").addEventListener("click", () => { closeTransient(); scene.classList.add("is-expanded"); notifyParent("domain-dock"); });
+    document.getElementById("collapse-dock").addEventListener("click", () => scene.classList.remove("is-expanded"));
+    document.getElementById("close-collection").addEventListener("click", () => { collectionPanel.classList.remove("is-open"); contextMenu.classList.remove("is-open"); });
+    document.getElementById("close-folder-collection").addEventListener("click", () => {
+      folderCollectionPanel.classList.remove("is-open");
+      folderCollectionPanel.setAttribute("aria-hidden", "true");
+      document.querySelectorAll(".folder-chip.is-active").forEach((button) => button.classList.remove("is-active"));
+    });
+    document.querySelectorAll("[data-folder-sort]").forEach((button) => button.addEventListener("click", () => {
+      activeFolderPanelSort = button.dataset.folderSort;
+      renderFolderCollection();
+    }));
+    document.getElementById("search-form").addEventListener("click", () => {
+      if (!searchMenu.classList.contains("is-open")) closeTransient();
+      searchMenu.classList.add("is-open");
+      notifyParent("search-box");
+    });
+    document.getElementById("search-form").addEventListener("submit", (event) => { event.preventDefault(); const value = document.getElementById("main-search").value.trim(); showToast(value ? '搜索“' + value + '”的产品语义仍待讨论' : "请输入搜索词或网址"); });
+    document.querySelectorAll("[data-search-action]").forEach((button) => button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (!searchMenu.classList.contains("is-open")) closeTransient();
+      searchMenu.classList.add("is-open");
+      showToast(button.dataset.searchAction + "功能仍待 M07 讨论");
+    }));
+    document.querySelectorAll(".search-option").forEach((button) => button.addEventListener("click", () => showToast(button.textContent.trim())));
+    document.querySelectorAll(".context-item").forEach((button) => button.addEventListener("click", () => { showToast(button.textContent.trim() + "（交互细节待 M06 确认）"); contextMenu.classList.remove("is-open"); }));
+    document.querySelectorAll(".segment").forEach((button) => button.addEventListener("click", () => { const group = button.parentElement; if (group.classList.contains("segmented")) { group.querySelectorAll(".segment").forEach((item) => item.classList.remove("active")); button.classList.add("active"); } showToast("设置候选已切换，仅用于讨论"); }));
+
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest("#context-menu") && !event.target.closest("[data-item-menu]") && !event.target.closest(".site-row")) contextMenu.classList.remove("is-open");
+      if (!event.target.closest("#search-form") && !event.target.closest("#search-menu")) searchMenu.classList.remove("is-open");
+      if (!event.target.closest("#settings-popover") && !event.target.closest("[data-tool-index]")) {
+        settingsPopover.classList.remove("is-open");
+        document.querySelectorAll(".tool-button.is-active").forEach((button) => button.classList.remove("is-active"));
+      }
+    });
+    document.addEventListener("keydown", (event) => { if (event.key === "Escape") { closeTransient(); scene.classList.remove("is-expanded"); } });
+
+    window.addEventListener("message", (event) => {
+      if (event.origin !== location.origin || event.data?.type !== "zero-prototype-set-module") return;
+      closeTransient();
+      scene.classList.remove("is-expanded");
+      applyDiscussionState(event.data.module || "", event.data.element || "");
+    });
+
+    renderDock();
+    const dockResizeObserver = new ResizeObserver(syncDockCapacity);
+    dockResizeObserver.observe(document.getElementById("dock-row"));
+    renderBottom();
+    renderTags();
+    renderSelectedTags();
+    refreshIcons();
+    if (initialModule) requestAnimationFrame(() => applyDiscussionState(initialModule, initialElement));
+  </script>
+  <script src="high-fi-demo-v2.js?v=20260806-side-panel-1"></script>
+</body>
+</html>

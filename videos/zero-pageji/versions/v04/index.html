@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<base href="../../">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZERO 页集 · 功能演示</title>
+<meta name="description" content="45秒了解ZERO页集：多窗口与站点聚合、标签去重、书签管理、全局搜索和最近关闭。">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:#182139;background:#f7f8fb;color-scheme:light}*{box-sizing:border-box}body{margin:0}main{width:min(100% - 40px,1040px);margin:40px auto 28px}.brand{display:flex;align-items:center;gap:12px;font-size:21px;font-weight:650}.brand img{width:40px;height:40px}h1{font-size:clamp(27px,4vw,44px);letter-spacing:-.03em;margin:30px 0 10px;line-height:1.25}.intro{margin:0 0 24px;color:#5f687a;font-size:16px;line-height:1.8}.player{background:#14171c;border:1px solid #e1e5ee;border-radius:16px;overflow:hidden;box-shadow:0 16px 50px #27324c10}video{display:block;width:100%;aspect-ratio:16/9;background:#14171c}.tools{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:18px 0 10px;color:#626b7e;font-size:14px}label{display:flex;gap:9px;align-items:center}select{font:inherit;color:#263249;border:1px solid #d8deea;border-radius:8px;padding:8px 28px 8px 10px;background:white}a{color:#3858ad;text-decoration:none}a:hover{text-decoration:underline}a:focus-visible,select:focus-visible{outline:3px solid #7b9ae9;outline-offset:3px}.downloads{display:flex;gap:22px}.hint{font-size:13px;color:#737d90;margin:14px 0 0}.credits{border-top:1px solid #e1e5ee;padding-top:20px;margin-top:35px;font-size:12px;line-height:1.9;color:#778095}.credits p{margin:0 0 4px}.credits a{color:inherit}@media(max-width:560px){main{width:calc(100% - 28px);margin-top:24px}.brand{font-size:19px}.brand img{width:34px;height:34px}h1{margin-top:24px}.intro{font-size:14px}.player{border-radius:10px}.tools{font-size:13px}.downloads{gap:16px}.credits{margin-top:26px}}
+</style>
+</head>
+<body><main>
+<header class="brand"><img src="assets/logo.png" alt="ZERO 页集图标"><span>ZERO 页集</span></header>
+<p class="hint">历史版本 V04 · <a href="./">返回最新版本</a></p>
+<h1>网页多，也能井井有条。</h1>
+<p class="intro">用 45 秒看看，如何更顺手地查找、整理和管理工作网页。</p>
+<div class="player"><video id="demo" controls playsinline preload="metadata" poster="assets/poster.png" src="assets/demo-720p.mp4" aria-label="ZERO页集45秒功能宣传视频">你的浏览器暂不支持在线播放，请使用下方链接下载观看。</video></div>
+<div class="tools"><label for="quality">播放画质<select id="quality"><option value="720p">流畅 · 720p</option><option value="1080p">清晰 · 1080p</option></select></label><div class="downloads"><a href="assets/demo-720p.mp4" download>下载流畅版 · 1.79 MB</a><a href="assets/demo-1080p.mp4" download>下载清晰版 · 10.74 MB</a></div></div>
+<p class="hint">点击播放即可观看，开启声音可听到功能讲解。</p>
+<footer class="credits"><p>配乐：Digital Lemonade — Kevin MacLeod · <a href="https://incompetech.com/music/royalty-free/index.html?Search=Search&amp;isrc=USUAN1700010" target="_blank" rel="noopener noreferrer">原曲来源</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></p><p>本片截取、均衡、调整音量并混合旁白，未改变音乐速度。<a href="CREDITS.txt">完整署名</a></p></footer>
+</main><script>
+const video=document.getElementById('demo'),quality=document.getElementById('quality');
+quality.addEventListener('change',()=>{const at=video.currentTime,resume=!video.paused;video.pause();video.src=`assets/demo-${quality.value}.mp4`;video.addEventListener('loadedmetadata',()=>{video.currentTime=Math.min(at,video.duration||at);if(resume)video.play().catch(()=>{});},{once:true});video.load();});
+video.addEventListener('error',()=>{document.querySelector('.hint').textContent='视频加载暂时失败，可以切换画质或下载后观看。';});
+</script></body></html>

@@ -1,23 +1,39 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
+<html lang="zh-CN"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ZERO 页集 · 功能演示</title>
-<meta name="description" content="45秒了解ZERO页集：多窗口与站点聚合、标签去重、书签管理、全局搜索和最近关闭。">
+<title>ZERO 页集 · 功能演示与历史版本</title>
+<meta name="description" content="约47秒了解ZERO页集：多窗口与分组、按站点查看、全局搜索、最近关闭、标签去重、书签和侧栏。默认播放最新V08，也可观看V04历史版。">
 <style>
-:root{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:#182139;background:#f7f8fb;color-scheme:light}*{box-sizing:border-box}body{margin:0}main{width:min(100% - 40px,1040px);margin:40px auto 28px}.brand{display:flex;align-items:center;gap:12px;font-size:21px;font-weight:650}.brand img{width:40px;height:40px}h1{font-size:clamp(27px,4vw,44px);letter-spacing:-.03em;margin:30px 0 10px;line-height:1.25}.intro{margin:0 0 24px;color:#5f687a;font-size:16px;line-height:1.8}.player{background:#14171c;border:1px solid #e1e5ee;border-radius:16px;overflow:hidden;box-shadow:0 16px 50px #27324c10}video{display:block;width:100%;aspect-ratio:16/9;background:#14171c}.tools{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:18px 0 10px;color:#626b7e;font-size:14px}label{display:flex;gap:9px;align-items:center}select{font:inherit;color:#263249;border:1px solid #d8deea;border-radius:8px;padding:8px 28px 8px 10px;background:white}a{color:#3858ad;text-decoration:none}a:hover{text-decoration:underline}a:focus-visible,select:focus-visible{outline:3px solid #7b9ae9;outline-offset:3px}.downloads{display:flex;gap:22px}.hint{font-size:13px;color:#737d90;margin:14px 0 0}.credits{border-top:1px solid #e1e5ee;padding-top:20px;margin-top:35px;font-size:12px;line-height:1.9;color:#778095}.credits p{margin:0 0 4px}.credits a{color:inherit}@media(max-width:560px){main{width:calc(100% - 28px);margin-top:24px}.brand{font-size:19px}.brand img{width:34px;height:34px}h1{margin-top:24px}.intro{font-size:14px}.player{border-radius:10px}.tools{font-size:13px}.downloads{gap:16px}.credits{margin-top:26px}}
-</style>
-</head>
-<body><main>
+:root{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:#182139;background:#f7f8fb;color-scheme:light}*{box-sizing:border-box}body{margin:0}main{width:min(100% - 40px,1040px);margin:40px auto 28px}.brand{display:flex;align-items:center;gap:12px;font-size:21px;font-weight:650}.brand img{width:40px;height:40px}h1{font-size:clamp(27px,4vw,44px);letter-spacing:-.03em;margin:30px 0 10px;line-height:1.25}.intro{margin:0 0 20px;color:#5f687a;font-size:16px;line-height:1.8}.edition{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}.badge{display:inline-block;background:#e9eef9;color:#536786;border:1px solid #dce4f2;border-radius:7px;padding:5px 10px;font-size:12px}.edition a{font-size:13px}.player{background:#14171c;border:1px solid #e1e5ee;border-radius:16px;overflow:hidden;box-shadow:0 16px 50px #27324c10}video{display:block;width:100%;aspect-ratio:16/9;background:#14171c}.tools{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:18px 0 10px;color:#626b7e;font-size:14px}.selectors{display:flex;gap:20px;flex-wrap:wrap}label{display:flex;gap:9px;align-items:center}select{font:inherit;color:#263249;border:1px solid #d8deea;border-radius:8px;padding:8px 10px;background:white;max-width:100%}a{color:#3858ad;text-decoration:none}a:hover{text-decoration:underline}a:focus-visible,select:focus-visible{outline:3px solid #7b9ae9;outline-offset:3px}.downloads{display:flex;gap:20px;flex-wrap:wrap}.hint{font-size:13px;color:#737d90;margin:14px 0 0;line-height:1.7}.credits{border-top:1px solid #e1e5ee;padding-top:20px;margin-top:30px;font-size:12px;line-height:1.9;color:#778095}.credits p{margin:0 0 4px}.credits a{color:inherit}@media(max-width:560px){main{width:calc(100% - 28px);margin-top:24px}.brand{font-size:19px}.brand img{width:34px;height:34px}h1{margin-top:24px}.intro{font-size:14px}.player{border-radius:10px}.tools{font-size:13px;gap:14px}.selectors{gap:12px;width:100%}.downloads{gap:16px}.credits{margin-top:26px}}
+</style></head><body><main>
 <header class="brand"><img src="assets/logo.png" alt="ZERO 页集图标"><span>ZERO 页集</span></header>
 <h1>网页多，也能井井有条。</h1>
-<p class="intro">用 45 秒看看，如何更顺手地查找、整理和管理工作网页。</p>
-<div class="player"><video id="demo" controls playsinline preload="metadata" poster="assets/poster.png" src="assets/demo-720p.mp4" aria-label="ZERO页集45秒功能宣传视频">你的浏览器暂不支持在线播放，请使用下方链接下载观看。</video></div>
-<div class="tools"><label for="quality">播放画质<select id="quality"><option value="720p">流畅 · 720p</option><option value="1080p">清晰 · 1080p</option></select></label><div class="downloads"><a href="assets/demo-720p.mp4" download>下载流畅版 · 1.79 MB</a><a href="assets/demo-1080p.mp4" download>下载清晰版 · 10.74 MB</a></div></div>
-<p class="hint">点击播放即可观看，开启声音可听到功能讲解。</p>
-<footer class="credits"><p>配乐：Digital Lemonade — Kevin MacLeod · <a href="https://incompetech.com/music/royalty-free/index.html?Search=Search&amp;isrc=USUAN1700010" target="_blank" rel="noopener noreferrer">原曲来源</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></p><p>本片截取、均衡、调整音量并混合旁白，未改变音乐速度。<a href="CREDITS.txt">完整署名</a></p></footer>
+<p class="intro" id="intro">用约47秒看看，如何更顺手地查找、整理和管理工作网页。</p>
+<div class="edition"><span id="edition" class="badge" aria-live="polite">最新定稿 V08 · 约47秒</span><a href="versions/v04/">观看 V04 历史版 ↗</a></div>
+<div class="player"><video id="demo" controls playsinline preload="metadata" poster="versions/v08/poster.png" src="versions/v08/demo-720p.mp4" aria-label="ZERO页集V08功能宣传视频">你的浏览器暂不支持在线播放，请使用下方链接下载观看。</video></div>
+<div class="tools"><div class="selectors"><label for="version">视频版本<select id="version"><option value="v08">V08 · 最新定稿</option><option value="v04">V04 · 历史版</option></select></label><label for="quality">播放画质<select id="quality"><option value="720p">流畅 · 720p</option><option value="1080p">清晰 · 1080p</option></select></label></div><div class="downloads"><a id="download720" href="versions/v08/demo-720p.mp4" download>下载720p · 2.06 MB</a><a id="download1080" href="versions/v08/demo-1080p.mp4" download>下载1080p · 5.23 MB</a></div></div>
+<p class="hint" id="hint" aria-live="polite">点击播放即可观看，开启声音可听到功能讲解。旧版原视频继续保留，可在上方切换。</p>
+<footer class="credits"><p>配乐：<span id="musicTitle">Inspired</span> — Kevin MacLeod · <a id="musicSource" href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1600022" target="_blank" rel="noopener noreferrer">原曲来源</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></p><p>本片截取、均衡、调整音量并混合旁白，未改变音乐速度。<a id="creditLink" href="versions/v08/CREDITS.txt">完整署名</a> · <a id="subtitleLink" href="versions/v08/subtitles.srt" download>下载字幕</a></p></footer>
 </main><script>
-const video=document.getElementById('demo'),quality=document.getElementById('quality');
-quality.addEventListener('change',()=>{const at=video.currentTime,resume=!video.paused;video.pause();video.src=`assets/demo-${quality.value}.mp4`;video.addEventListener('loadedmetadata',()=>{video.currentTime=Math.min(at,video.duration||at);if(resume)video.play().catch(()=>{});},{once:true});video.load();});
-video.addEventListener('error',()=>{document.querySelector('.hint').textContent='视频加载暂时失败，可以切换画质或下载后观看。';});
+const versions={
+ v08:{label:'最新定稿 V08 · 约47秒',seconds:46.9,path:'versions/v08',poster:'versions/v08/poster.png',credits:'versions/v08/CREDITS.txt',music:'Inspired',musicSource:'https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1600022',bytes:{'720p':2061612,'1080p':5225314},subtitles:'versions/v08/subtitles.srt'},
+ v04:{label:'历史版 V04 · 45秒',seconds:45,path:'assets',poster:'assets/poster.png',credits:'CREDITS.txt',music:'Digital Lemonade',musicSource:'https://incompetech.com/music/royalty-free/index.html?Search=Search&isrc=USUAN1700010',bytes:{'720p':1793170,'1080p':10740377},subtitles:null}
+};
+const $=id=>document.getElementById(id),video=$('demo'),quality=$('quality'),version=$('version');let revision=0;
+version.value=Object.hasOwn(versions,new URL(location.href).searchParams.get('version'))?new URL(location.href).searchParams.get('version'):'v08';
+function selectVideo(preserveTime=false,initial=false){
+ const current=versions[version.value],at=preserveTime?video.currentTime:0,resume=preserveTime&&!video.paused,request=++revision;
+ video.pause();$('edition').textContent=current.label;$('intro').textContent=`用${current.seconds===45?'45':'约47'}秒看看，如何更顺手地查找、整理和管理工作网页。`;
+ video.setAttribute('aria-label',`ZERO页集${version.value.toUpperCase()}功能宣传视频`);video.poster=current.poster;
+ for(const q of ['720p','1080p']){const link=q==='720p'?$('download720'):$('download1080');link.href=`${current.path}/demo-${q}.mp4`;link.textContent=`下载${q} · ${(current.bytes[q]/1e6).toFixed(2)} MB`;}
+ $('musicTitle').textContent=current.music;$('musicSource').href=current.musicSource;$('creditLink').href=current.credits;
+ $('subtitleLink').hidden=!current.subtitles;if(current.subtitles)$('subtitleLink').href=current.subtitles;
+ $('hint').textContent=version.value==='v08'?'点击播放即可观看，开启声音可听到功能讲解。旧版原视频继续保留，可在上方切换。':'当前为V04历史版，视频与原来的下载地址保持；切换V08可观看最新定稿。';
+ video.onloadedmetadata=()=>{if(request!==revision)return;if(at>0)video.currentTime=Math.min(at,Math.max(0,video.duration-.1));if(resume)video.play().catch(()=>{$('hint').textContent='画质已切换，点击播放继续观看。';});};
+ video.src=`${current.path}/demo-${quality.value}.mp4`;video.load();
+ if(!initial){const url=new URL(location.href);if(version.value==='v08')url.searchParams.delete('version');else url.searchParams.set('version',version.value);history.replaceState(null,'',url);}
+}
+quality.addEventListener('change',()=>selectVideo(true));version.addEventListener('change',()=>selectVideo(false));
+video.addEventListener('error',()=>{$('hint').textContent='视频加载暂时失败，可以切换画质或下载后观看。';});
+selectVideo(false,true);
 </script></body></html>
